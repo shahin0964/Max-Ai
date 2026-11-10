@@ -12,6 +12,11 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: AppTheme.cyan),
+          tooltip: 'Open Slidebar',
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
         title: const Text('ENGINE & HARDWARE TELEMETRY'),
       ),
       body: SafeArea(

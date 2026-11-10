@@ -6,7 +6,9 @@ import '../theme/app_theme.dart';
 import 'model_selector_sheet.dart';
 
 class HudTelemetryBar extends StatelessWidget {
-  const HudTelemetryBar({super.key});
+  final VoidCallback? onMenuTap;
+
+  const HudTelemetryBar({super.key, this.onMenuTap});
 
   @override
   Widget build(BuildContext context) {
@@ -43,18 +45,18 @@ class HudTelemetryBar extends StatelessWidget {
         }
 
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppTheme.surface.withValues(alpha: 0.85),
-            borderRadius: BorderRadius.circular(24),
+            color: AppTheme.surface.withValues(alpha: 0.9),
+            borderRadius: BorderRadius.circular(20),
             border: Border.all(
               color: providerColor.withValues(alpha: 0.35),
               width: 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: providerColor.withValues(alpha: 0.1),
-                blurRadius: 12,
+                color: providerColor.withValues(alpha: 0.08),
+                blurRadius: 10,
                 spreadRadius: 1,
               )
             ],
@@ -63,72 +65,80 @@ class HudTelemetryBar extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // 1. Model Selector Tap
-              GestureDetector(
-                onTap: () {
-                  showModalBottomSheet(
-                    context: context,
-                    backgroundColor: Colors.transparent,
-                    isScrollControlled: true,
-                    builder: (ctx) => const ModelSelectorSheet(),
-                  );
-                },
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(5),
-                      decoration: BoxDecoration(
-                        color: providerColor.withValues(alpha: 0.2),
-                        shape: BoxShape.circle,
+              Flexible(
+                child: GestureDetector(
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      backgroundColor: Colors.transparent,
+                      isScrollControlled: true,
+                      builder: (ctx) => const ModelSelectorSheet(),
+                    );
+                  },
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: providerColor.withValues(alpha: 0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(providerIcon, size: 12, color: providerColor),
                       ),
-                      child: Icon(providerIcon, size: 14, color: providerColor),
-                    ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          settings.activeModelId,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: AppTheme.textPrimary,
-                            letterSpacing: 0.5,
-                          ),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              settings.activeModelId,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.textPrimary,
+                              ),
+                            ),
+                            Text(
+                              settings.activeProvider.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontSize: 9,
+                                color: providerColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
-                        Text(
-                          settings.activeProvider.label,
-                          style: TextStyle(
-                            fontSize: 10,
-                            color: providerColor,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 4),
-                    const Icon(Icons.arrow_drop_down, size: 16, color: AppTheme.textMuted),
-                  ],
+                      ),
+                      const Icon(Icons.arrow_drop_down, size: 14, color: AppTheme.textMuted),
+                    ],
+                  ),
                 ),
               ),
 
-              const SizedBox(width: 12),
-              Container(width: 1, height: 22, color: AppTheme.textMuted.withValues(alpha: 0.3)),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Container(width: 1, height: 18, color: AppTheme.textMuted.withValues(alpha: 0.3)),
+              const SizedBox(width: 8),
 
               // 2. Latency
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     Icons.speed,
-                    size: 13,
+                    size: 12,
                     color: telemetry.lastLatencyMs > 0 ? AppTheme.emerald : AppTheme.textMuted,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 3),
                   Text(
                     telemetry.lastLatencyMs > 0 ? '${telemetry.lastLatencyMs}ms' : 'Ready',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w500,
                       color: telemetry.lastLatencyMs > 0 ? AppTheme.emerald : AppTheme.textMuted,
                     ),
@@ -136,25 +146,26 @@ class HudTelemetryBar extends StatelessWidget {
                 ],
               ),
 
-              const SizedBox(width: 12),
-              Container(width: 1, height: 22, color: AppTheme.textMuted.withValues(alpha: 0.3)),
-              const SizedBox(width: 12),
+              const SizedBox(width: 8),
+              Container(width: 1, height: 18, color: AppTheme.textMuted.withValues(alpha: 0.3)),
+              const SizedBox(width: 8),
 
-              // 3. Battery / RAM
+              // 3. Battery
               Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(
                     telemetry.batteryLevel > 20
                         ? Icons.battery_charging_full
                         : Icons.battery_alert,
-                    size: 14,
+                    size: 13,
                     color: telemetry.batteryLevel > 20 ? AppTheme.cyan : AppTheme.rose,
                   ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 3),
                   Text(
                     '${telemetry.batteryLevel}%',
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 10,
                       fontWeight: FontWeight.w600,
                       color: AppTheme.textSecondary,
                     ),

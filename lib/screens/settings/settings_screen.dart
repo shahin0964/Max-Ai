@@ -77,6 +77,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, color: AppTheme.cyan, size: 20),
+          tooltip: 'Back',
+          onPressed: () => Navigator.pop(context),
+        ),
         title: const Text('SETTINGS & CONFIG'),
         actions: [
           IconButton(

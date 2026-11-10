@@ -105,18 +105,28 @@ class _ChatScreenState extends State<ChatScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            // Top HUD Bar & Reactor Orb preview
+            // Top HUD Bar with Sidebar Menu & Reactor Orb preview
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+              padding: const EdgeInsets.fromLTRB(10, 6, 12, 4),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const HudTelemetryBar(),
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: AppTheme.cyan, size: 24),
+                    tooltip: 'Open Slidebar',
+                    onPressed: () {
+                      Scaffold.of(context).openDrawer();
+                    },
+                  ),
+                  const SizedBox(width: 4),
+                  const Expanded(
+                    child: HudTelemetryBar(),
+                  ),
+                  const SizedBox(width: 8),
                   ListenableBuilder(
                     listenable: voice,
                     builder: (context, _) {
                       return HolographicReactorOrb(
-                        size: 42,
+                        size: 38,
                         state: voice.state,
                         onTap: () {
                           // Quick voice toggle

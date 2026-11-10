@@ -135,6 +135,11 @@ class _MemoryScreenState extends State<MemoryScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: AppTheme.violet),
+          tooltip: 'Open Slidebar',
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
         title: const Text('OPENJARVIS MEMORY STACK'),
         actions: [
           IconButton(

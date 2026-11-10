@@ -43,3 +43,6 @@ migrate_working_dir/
 *.jks
 *.keystore
 !/android/app/release.jks
+
+# Build artifacts
+*.apk

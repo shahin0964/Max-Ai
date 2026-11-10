@@ -35,6 +35,11 @@ class _AgentScreenState extends State<AgentScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: IconButton(
+          icon: const Icon(Icons.menu, color: AppTheme.amber),
+          tooltip: 'Open Slidebar',
+          onPressed: () => Scaffold.of(context).openDrawer(),
+        ),
         title: const Text('AUTONOMOUS AGENT HUB'),
         actions: [
           IconButton(

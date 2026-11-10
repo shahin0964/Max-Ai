@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
+import '../widgets/cyber_drawer.dart';
 import 'agent/agent_screen.dart';
 import 'chat/chat_screen.dart';
 import 'dashboard/dashboard_screen.dart';
 import 'memory/memory_screen.dart';
-import 'settings/settings_screen.dart';
 import 'voice/voice_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -15,6 +15,7 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int _currentIndex = 0;
 
   final List<Widget> _screens = const [
@@ -28,6 +29,15 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
+      drawer: CyberDrawer(
+        selectedIndex: _currentIndex,
+        onSelectTab: (idx) {
+          setState(() {
+            _currentIndex = idx;
+          });
+        },
+      ),
       body: IndexedStack(
         index: _currentIndex,
         children: _screens,
