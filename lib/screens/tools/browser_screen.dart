@@ -259,7 +259,7 @@ Task:
                         const Text('RAW SCRAPED CLEAN TEXT', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppTheme.cyan, letterSpacing: 1.2)),
                         const SizedBox(height: 6),
                         Container(
-                          maxHeight: 180,
+                          constraints: const BoxConstraints(maxHeight: 180),
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: Colors.black,
