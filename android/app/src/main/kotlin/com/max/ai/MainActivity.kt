@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
+import android.media.MediaPlayer
 import android.os.BatteryManager
 import android.os.Build
 import androidx.annotation.NonNull
@@ -13,11 +14,13 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.max.ai/system"
+    private var mediaPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(@NonNull flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
+        val channel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL)
+        channel.setMethodCallHandler { call, result ->
             when (call.method) {
                 "getBatteryLevel" -> {
                     val batteryLevel = getBatteryPercentage()
@@ -36,6 +39,37 @@ class MainActivity: FlutterActivity() {
                         "board" to Build.BOARD
                     )
                     result.success(deviceData)
+                }
+                "playAudioFile" -> {
+                    val path = call.argument<String>("path")
+                    if (path != null) {
+                        try {
+                            mediaPlayer?.release()
+                            mediaPlayer = MediaPlayer().apply {
+                                setDataSource(path)
+                                setOnCompletionListener {
+                                    channel.invokeMethod("onAudioCompleted", null)
+                                }
+                                prepare()
+                                start()
+                            }
+                            result.success(true)
+                        } catch (e: Exception) {
+                            result.error("AUDIO_PLAY_ERROR", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_PATH", "Audio path is required", null)
+                    }
+                }
+                "stopAudio" -> {
+                    try {
+                        mediaPlayer?.stop()
+                        mediaPlayer?.release()
+                        mediaPlayer = null
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.success(false)
+                    }
                 }
                 else -> result.notImplemented()
             }
@@ -63,5 +97,11 @@ class MainActivity: FlutterActivity() {
             "thresholdMb" to (memInfo.threshold / (1024 * 1024)),
             "isLowMem" to if (memInfo.lowMemory) 1L else 0L
         )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mediaPlayer?.release()
+        mediaPlayer = null
     }
 }

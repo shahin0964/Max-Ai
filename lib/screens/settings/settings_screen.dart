@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/settings_service.dart';
+import '../../services/voice_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_panel.dart';
 
@@ -14,6 +15,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _geminiController;
   late TextEditingController _claudeController;
   late TextEditingController _openAiController;
+  late TextEditingController _elevenController;
+  late TextEditingController _voiceIdController;
   late TextEditingController _localServerController;
   late TextEditingController _systemPromptController;
 
@@ -24,6 +27,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _geminiController = TextEditingController(text: settings.geminiApiKey);
     _claudeController = TextEditingController(text: settings.claudeApiKey);
     _openAiController = TextEditingController(text: settings.openAiApiKey);
+    _elevenController = TextEditingController(text: settings.elevenLabsApiKey);
+    _voiceIdController = TextEditingController(text: settings.voiceId);
     _localServerController = TextEditingController(text: settings.localServerUrl);
     _systemPromptController = TextEditingController(text: settings.systemPrompt);
   }
@@ -33,6 +38,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _geminiController.dispose();
     _claudeController.dispose();
     _openAiController.dispose();
+    _elevenController.dispose();
+    _voiceIdController.dispose();
     _localServerController.dispose();
     _systemPromptController.dispose();
     super.dispose();
@@ -43,6 +50,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await settings.setGeminiApiKey(_geminiController.text);
     await settings.setClaudeApiKey(_claudeController.text);
     await settings.setOpenAiApiKey(_openAiController.text);
+    await settings.setElevenLabsApiKey(_elevenController.text);
+    await settings.setVoiceId(_voiceIdController.text);
     await settings.setLocalServerUrl(_localServerController.text);
     await settings.setSystemPrompt(_systemPromptController.text);
 
@@ -56,13 +65,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _testVoice() {
+    VoiceService.instance.speak(
+      'Greetings! This is Max AI speaking with neural voice ID ${_voiceIdController.text}. Systems are fully operational.',
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = SettingsService.instance;
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('SETTINGS & MODEL CONFIG'),
+        title: const Text('SETTINGS & CONFIG'),
         actions: [
           IconButton(
             icon: const Icon(Icons.check, color: AppTheme.cyan),
@@ -140,7 +155,65 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 18),
 
-              // 2. System Prompt
+              // 2. High-Fidelity Voice Synthesis (ElevenLabs)
+              const Text(
+                'NEURAL VOICE SYNTHESIS',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: AppTheme.violet,
+                ),
+              ),
+              const SizedBox(height: 8),
+
+              GlassPanel(
+                borderColor: AppTheme.violet.withValues(alpha: 0.4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _voiceIdController,
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary, fontFamily: 'monospace'),
+                      decoration: const InputDecoration(
+                        labelText: 'Active Voice ID',
+                        hintText: 'wDsJlOXPqcvIUKdLXjDs',
+                        labelStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                        prefixIcon: Icon(Icons.record_voice_over, size: 18, color: AppTheme.violet),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: _elevenController,
+                      obscureText: true,
+                      style: const TextStyle(fontSize: 13, color: AppTheme.textPrimary),
+                      decoration: const InputDecoration(
+                        labelText: 'ElevenLabs API Key (Optional for Neural Voice)',
+                        labelStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted),
+                        prefixIcon: Icon(Icons.key, size: 18, color: AppTheme.violet),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: OutlinedButton.icon(
+                        onPressed: _testVoice,
+                        icon: const Icon(Icons.volume_up, size: 16),
+                        label: const Text('Test Voice Output'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppTheme.violet,
+                          side: const BorderSide(color: AppTheme.violet, width: 0.8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 18),
+
+              // 3. System Prompt
               const Text(
                 'AGENT PERSONA & SYSTEM INSTRUCTION',
                 style: TextStyle(
@@ -166,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 18),
 
-              // 3. Inference & Voice Sliders
+              // 4. Sliders
               const Text(
                 'HYPERPARAMETERS',
                 style: TextStyle(
@@ -205,7 +278,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('Voice Speed (TTS Rate)', style: TextStyle(fontSize: 12)),
+                        const Text('Speech Speed (Rate)', style: TextStyle(fontSize: 12)),
                         Text(settings.ttsRate.toStringAsFixed(2),
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.violet)),
                       ],
@@ -227,7 +300,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 20),
 
-              // Save Button
               Center(
                 child: ElevatedButton.icon(
                   onPressed: _saveAll,
@@ -244,7 +316,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 20),
 
-              // About card
               Center(
                 child: Column(
                   children: [
@@ -254,7 +325,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Package: com.max.ai',
+                      'Package: com.max.ai | Voice ID: ${settings.voiceId}',
                       style: TextStyle(fontSize: 10, color: AppTheme.cyan.withValues(alpha: 0.6)),
                     ),
                   ],

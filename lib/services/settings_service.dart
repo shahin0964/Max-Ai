@@ -12,6 +12,8 @@ class SettingsService extends ChangeNotifier {
   static const _kGeminiKey = 'gemini_api_key';
   static const _kClaudeKey = 'claude_api_key';
   static const _kOpenAiKey = 'openai_api_key';
+  static const _kElevenLabsKey = 'elevenlabs_api_key';
+  static const _kVoiceId = 'voice_id';
   static const _kLocalServerUrl = 'local_server_url';
   static const _kActiveProvider = 'active_provider';
   static const _kActiveModelId = 'active_model_id';
@@ -22,6 +24,8 @@ class SettingsService extends ChangeNotifier {
   String _geminiApiKey = '';
   String _claudeApiKey = '';
   String _openAiApiKey = '';
+  String _elevenLabsApiKey = '';
+  String _voiceId = 'wDsJlOXPqcvIUKdLXjDs';
   String _localServerUrl = 'http://127.0.0.1:8000';
   AIProvider _activeProvider = AIProvider.gemini;
   String _activeModelId = 'gemini-2.5-flash';
@@ -33,6 +37,8 @@ class SettingsService extends ChangeNotifier {
   String get geminiApiKey => _geminiApiKey;
   String get claudeApiKey => _claudeApiKey;
   String get openAiApiKey => _openAiApiKey;
+  String get elevenLabsApiKey => _elevenLabsApiKey;
+  String get voiceId => _voiceId;
   String get localServerUrl => _localServerUrl;
   AIProvider get activeProvider => _activeProvider;
   String get activeModelId => _activeModelId;
@@ -45,6 +51,8 @@ class SettingsService extends ChangeNotifier {
     _geminiApiKey = _prefs.getString(_kGeminiKey) ?? '';
     _claudeApiKey = _prefs.getString(_kClaudeKey) ?? '';
     _openAiApiKey = _prefs.getString(_kOpenAiKey) ?? '';
+    _elevenLabsApiKey = _prefs.getString(_kElevenLabsKey) ?? '';
+    _voiceId = _prefs.getString(_kVoiceId) ?? 'wDsJlOXPqcvIUKdLXjDs';
     _localServerUrl = _prefs.getString(_kLocalServerUrl) ?? 'http://127.0.0.1:8000';
     
     final provStr = _prefs.getString(_kActiveProvider);
@@ -80,6 +88,18 @@ class SettingsService extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setElevenLabsApiKey(String key) async {
+    _elevenLabsApiKey = key.trim();
+    await _prefs.setString(_kElevenLabsKey, _elevenLabsApiKey);
+    notifyListeners();
+  }
+
+  Future<void> setVoiceId(String id) async {
+    _voiceId = id.trim();
+    await _prefs.setString(_kVoiceId, _voiceId);
+    notifyListeners();
+  }
+
   Future<void> setLocalServerUrl(String url) async {
     _localServerUrl = url.trim();
     await _prefs.setString(_kLocalServerUrl, _localServerUrl);
@@ -90,7 +110,6 @@ class SettingsService extends ChangeNotifier {
     _activeProvider = provider;
     await _prefs.setString(_kActiveProvider, provider.name);
 
-    // Auto set appropriate default model for provider
     final models = AIModelInfo.availableModels.where((m) => m.provider == provider).toList();
     if (models.isNotEmpty) {
       _activeModelId = models.first.id;
