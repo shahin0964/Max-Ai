@@ -425,7 +425,7 @@ Swap:          2048           0        2048''',
     final usedRam = (t.totalRamMb - t.availRamMb).toInt();
     final totalRam = t.totalRamMb.toInt();
 
-    const asciiLogo = '''
+    final asciiLogo = '''
             .-/+oossssoo+/-.               root@max-ubuntu
         `:+ssssssssssssssssss+:`           ----------------
       -+ssssssssssssssssssyyssss+-         OS: Ubuntu 24.04.1 LTS noble (aarch64)
@@ -507,7 +507,7 @@ Get:1 http://archive.ubuntu.com/ubuntu noble/main aarch64 $pkg [1,842 kB]
 Fetched 1,842 kB in 0s (4,120 kB/s)
 Selecting previously unselected package $pkg.
 (Reading database ... 62410 files and directories currently installed.)
-Preparing to unpack .../$pkg_noble_arm64.deb ...
+Preparing to unpack .../${pkg}_noble_arm64.deb ...
 Unpacking $pkg (noble-updates) ...
 Setting up $pkg ...
 Processing triggers for man-db ...
