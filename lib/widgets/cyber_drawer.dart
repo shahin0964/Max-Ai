@@ -180,11 +180,11 @@ class CyberDrawer extends StatelessWidget {
                     context: context,
                   ),
                   _buildNavItem(
-                    icon: Icons.speed,
-                    activeIcon: Icons.speed,
-                    label: 'Hardware & Telemetry',
+                    icon: Icons.bug_report_outlined,
+                    activeIcon: Icons.bug_report,
+                    label: 'Telemetry & Bug Monitor',
                     index: 4,
-                    color: AppTheme.cyan,
+                    color: AppTheme.amber,
                     context: context,
                   ),
 

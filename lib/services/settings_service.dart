@@ -67,6 +67,7 @@ class SettingsService extends ChangeNotifier {
     // Auto-migrate legacy and deprecated model IDs to gemini-3.8-flash
     if (_activeModelId == 'gemini-2.0-flash' ||
         _activeModelId == 'gemini-2.5-flash' ||
+        _activeModelId == 'gemini-2.5-pro' ||
         _activeModelId == 'gemini-3.8-pro' ||
         _activeModelId == 'gemini-2.5-flash-lite' ||
         _activeModelId == 'gemini-1.5-flash' ||

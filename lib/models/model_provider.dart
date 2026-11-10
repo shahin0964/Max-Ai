@@ -52,10 +52,10 @@ class AIModelInfo {
       description: '1M token hybrid reasoning model',
     ),
     AIModelInfo(
-      id: 'gemini-2.5-pro',
-      name: 'Gemini 2.5 Pro',
+      id: 'gemini-3.1-pro-preview',
+      name: 'Gemini 3.1 Pro',
       provider: AIProvider.gemini,
-      description: 'Multipurpose complex coding and reasoning model',
+      description: 'SOTA frontier reasoning, deep logic & coding intelligence',
     ),
 
     // Claude

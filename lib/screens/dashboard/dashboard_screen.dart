@@ -1,5 +1,5 @@
-import 'package:flutter/material.dart';
 import '../../services/ai_engine_service.dart';
+import '../../services/diagnostics_logger_service.dart';
 import '../../services/hardware_telemetry_service.dart';
 import '../../services/settings_service.dart';
 import '../../theme/app_theme.dart';
@@ -26,6 +26,7 @@ class DashboardScreen extends StatelessWidget {
             listenable: Listenable.merge([
               HardwareTelemetryService.instance,
               SettingsService.instance,
+              DiagnosticsLoggerService.instance,
             ]),
             builder: (context, _) {
               final telemetry = HardwareTelemetryService.instance.currentData;
@@ -206,6 +207,130 @@ class DashboardScreen extends StatelessWidget {
                         _buildHardwareRow('Battery Level', '${telemetry.batteryLevel}%'),
                         const Divider(height: 16),
                         _buildHardwareRow('Architecture', 'arm64-v8a / OpenJarvis Core'),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+                  const Text(
+                    'LIVE BUG MONITOR & ERROR STREAM',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.2,
+                      color: AppTheme.amber,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  GlassPanel(
+                    borderColor: AppTheme.amber.withValues(alpha: 0.35),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.bug_report, size: 16, color: AppTheme.amber),
+                                SizedBox(width: 8),
+                                Text(
+                                  'AUTONOMOUS ERROR RECORDER',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                    color: AppTheme.amber,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Text(
+                              '${DiagnosticsLoggerService.instance.logs.length} events',
+                              style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        Container(
+                          height: 160,
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppTheme.surfaceGlassBorder, width: 0.8),
+                          ),
+                          child: DiagnosticsLoggerService.instance.logs.isEmpty
+                              ? const Center(
+                                  child: Text(
+                                    'No errors detected. Engine running clean.',
+                                    style: TextStyle(fontSize: 11, color: AppTheme.emerald),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  reverse: true,
+                                  itemCount: DiagnosticsLoggerService.instance.logs.length,
+                                  itemBuilder: (ctx, idx) {
+                                    final log = DiagnosticsLoggerService.instance.logs.reversed.toList()[idx];
+                                    final color = log.level == LogLevel.error
+                                        ? AppTheme.rose
+                                        : log.level == LogLevel.warn
+                                            ? AppTheme.amber
+                                            : log.level == LogLevel.success
+                                                ? AppTheme.emerald
+                                                : AppTheme.cyan;
+
+                                    return Padding(
+                                      padding: const EdgeInsets.only(bottom: 4),
+                                      child: Text(
+                                        log.toFormattedString(),
+                                        style: TextStyle(
+                                          fontFamily: 'monospace',
+                                          fontSize: 10,
+                                          color: color,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  await DiagnosticsLoggerService.instance.dumpFullLogs();
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('Diagnostics saved to Download/max_ai_diagnostics.log'),
+                                        duration: Duration(seconds: 2),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.file_download, size: 14),
+                                label: const Text('Export to Log File', style: TextStyle(fontSize: 11)),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: AppTheme.cyan,
+                                  side: const BorderSide(color: AppTheme.cyan, width: 0.8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            OutlinedButton.icon(
+                              onPressed: () => DiagnosticsLoggerService.instance.clearLogs(),
+                              icon: const Icon(Icons.delete_outline, size: 14),
+                              label: const Text('Clear', style: TextStyle(fontSize: 11)),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: AppTheme.rose,
+                                side: const BorderSide(color: AppTheme.rose, width: 0.8),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),

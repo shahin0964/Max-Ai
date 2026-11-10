@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
 import '../models/model_provider.dart';
+import 'diagnostics_logger_service.dart';
 import 'hardware_telemetry_service.dart';
 import 'memory_service.dart';
 import 'settings_service.dart';
@@ -40,9 +42,18 @@ class AIEngineService {
 
     try {
       String replyText = '';
+      String effectiveModel = modelId;
+
       switch (provider) {
         case AIProvider.gemini:
-          replyText = await _callGemini(modelId, history, systemPrompt, settings.geminiApiKey);
+          final geminiResult = await _callGeminiWithFailover(
+            modelId,
+            history,
+            systemPrompt,
+            settings.geminiApiKey,
+          );
+          replyText = geminiResult.replyText;
+          effectiveModel = geminiResult.activeModel;
           break;
         case AIProvider.claude:
           replyText = await _callClaude(modelId, history, systemPrompt, settings.claudeApiKey);
@@ -57,16 +68,22 @@ class AIEngineService {
 
       stopwatch.stop();
       final latency = stopwatch.elapsedMilliseconds;
-      HardwareTelemetryService.instance.updateLatency(latency, '$modelId (${provider.label})');
+      HardwareTelemetryService.instance.updateLatency(latency, '$effectiveModel (${provider.label})');
 
       return AIEngineResponse(
         text: replyText,
         latencyMs: latency,
-        model: modelId,
+        model: effectiveModel,
         provider: provider.label,
       );
     } catch (e) {
       stopwatch.stop();
+      DiagnosticsLoggerService.instance.logError(
+        'ENGINE_ERROR',
+        'Inference failed for $modelId (${provider.label})',
+        e.toString(),
+      );
+
       return AIEngineResponse(
         text: 'Error generating response: $e\n\nPlease check your API key or Local Server connection in Settings.',
         latencyMs: stopwatch.elapsedMilliseconds,
@@ -106,9 +123,9 @@ class AIEngineService {
     }
   }
 
-  // 1. Google Gemini API Call
-  Future<String> _callGemini(
-    String model,
+  // 1. Google Gemini Smart Auto-Failover Engine
+  Future<({String replyText, String activeModel})> _callGeminiWithFailover(
+    String requestedModel,
     List<ChatMessage> history,
     String systemPrompt,
     String apiKey,
@@ -117,12 +134,65 @@ class AIEngineService {
       throw 'Gemini API key is not configured. Please set it in Settings.';
     }
 
+    // Ordered failover candidates if a model is unavailable or overloaded (HTTP 503 / 404 / 429)
+    final candidates = <String>{
+      requestedModel,
+      'gemini-3.8-flash',
+      'gemini-3.7-flash',
+      'gemini-3.5-flash',
+      'gemini-3.1-pro-preview',
+    }.toList();
+
+    String lastError = '';
+
+    for (int i = 0; i < candidates.length; i++) {
+      final currentModel = candidates[i];
+      try {
+        DiagnosticsLoggerService.instance.logInfo(
+          'GEMINI_DISPATCH',
+          'Dispatching query to $currentModel (candidate ${i + 1}/${candidates.length})',
+        );
+
+        final text = await _callGeminiSingle(currentModel, history, systemPrompt, apiKey);
+
+        DiagnosticsLoggerService.instance.logSuccess(
+          'GEMINI_RESOLVED',
+          'Successfully received response from $currentModel',
+        );
+
+        return (replyText: text, activeModel: currentModel);
+      } catch (e) {
+        lastError = e.toString();
+        DiagnosticsLoggerService.instance.logWarn(
+          'GEMINI_RETRY',
+          'Model $currentModel failed: $e. ${i + 1 < candidates.length ? 'Auto-healing failover triggered...' : 'All failover candidates exhausted.'}',
+        );
+
+        // Exponential delay between candidate failovers
+        if (i + 1 < candidates.length) {
+          await Future.delayed(const Duration(milliseconds: 1200));
+        }
+      }
+    }
+
+    DiagnosticsLoggerService.instance.logError(
+      'GEMINI_EXHAUSTED',
+      'All Gemini model candidates failed. Last error: $lastError',
+    );
+    throw lastError;
+  }
+
+  // Single Gemini Model Request (generateContent with fallback to Interactions API)
+  Future<String> _callGeminiSingle(
+    String model,
+    List<ChatMessage> history,
+    String systemPrompt,
+    String apiKey,
+  ) async {
     final url = Uri.parse(
         'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
 
     final contents = <Map<String, dynamic>>[];
-
-    // Include recent history (last 10 messages)
     final recent = history.length > 10 ? history.sublist(history.length - 10) : history;
     for (final m in recent) {
       final role = m.role == MessageRole.user ? 'user' : 'model';
@@ -147,77 +217,79 @@ class AIEngineService {
       }
     };
 
-    final response = await http.post(
-      url,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode(payload),
-    ).timeout(const Duration(seconds: 25));
+    http.Response? response;
+    try {
+      response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 40));
 
-    if (response.statusCode == 200) {
-      final json = jsonDecode(response.body) as Map<String, dynamic>;
-      final candidates = json['candidates'] as List<dynamic>?;
-      if (candidates != null && candidates.isNotEmpty) {
-        final content = candidates.first['content'] as Map<String, dynamic>?;
-        final parts = content?['parts'] as List<dynamic>?;
-        if (parts != null && parts.isNotEmpty) {
-          return parts.first['text'] as String? ?? 'No response generated.';
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final candidates = json['candidates'] as List<dynamic>?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final content = candidates.first['content'] as Map<String, dynamic>?;
+          final parts = content?['parts'] as List<dynamic>?;
+          if (parts != null && parts.isNotEmpty) {
+            return parts.first['text'] as String? ?? 'No response generated.';
+          }
         }
+        return 'Empty response from Gemini.';
       }
-      return 'Empty response from Gemini.';
+    } catch (_) {
+      // Fall through to Interactions API
     }
 
-    // Fallback: Google Interactions API (Standard for Gemini 3.8 Flash)
-    try {
-      final interactionUrl = Uri.parse(
-          'https://generativelanguage.googleapis.com/v1beta/interactions?key=$apiKey');
+    // Fallback: Google Interactions API
+    final interactionUrl = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/interactions?key=$apiKey');
 
-      final lastUserMsg = history.isNotEmpty
-          ? history.reversed.firstWhere(
-              (m) => m.role == MessageRole.user,
-              orElse: () => history.last,
-            )
-          : null;
+    final lastUserMsg = history.isNotEmpty
+        ? history.reversed.firstWhere(
+            (m) => m.role == MessageRole.user,
+            orElse: () => history.last,
+          )
+        : null;
 
-      final userText = lastUserMsg?.content ?? 'Hello';
+    final userText = lastUserMsg?.content ?? 'Hello';
 
-      final interactionPayload = {
-        'model': model,
-        'input': userText,
-        'system_instruction': systemPrompt,
-      };
+    final interactionPayload = {
+      'model': model,
+      'input': userText,
+      'system_instruction': systemPrompt,
+    };
 
-      final intResponse = await http.post(
-        interactionUrl,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(interactionPayload),
-      ).timeout(const Duration(seconds: 25));
+    final intResponse = await http.post(
+      interactionUrl,
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(interactionPayload),
+    ).timeout(const Duration(seconds: 40));
 
-      if (intResponse.statusCode == 200) {
-        final intJson = jsonDecode(intResponse.body) as Map<String, dynamic>;
-        if (intJson.containsKey('output_text') && intJson['output_text'] != null) {
-          return intJson['output_text'] as String;
-        }
-        final steps = intJson['steps'] as List<dynamic>?;
-        if (steps != null) {
-          for (final s in steps.reversed) {
-            final content = s['content'] as List<dynamic>?;
-            if (content != null && content.isNotEmpty) {
-              for (final c in content) {
-                if (c is Map<String, dynamic> && c['text'] != null) {
-                  return c['text'] as String;
-                }
+    if (intResponse.statusCode == 200) {
+      final intJson = jsonDecode(intResponse.body) as Map<String, dynamic>;
+      if (intJson.containsKey('output_text') && intJson['output_text'] != null) {
+        return intJson['output_text'] as String;
+      }
+      final steps = intJson['steps'] as List<dynamic>?;
+      if (steps != null) {
+        for (final s in steps.reversed) {
+          final content = s['content'] as List<dynamic>?;
+          if (content != null && content.isNotEmpty) {
+            for (final c in content) {
+              if (c is Map<String, dynamic> && c['text'] != null) {
+                return c['text'] as String;
               }
             }
           }
         }
-        return 'Interaction response received.';
       }
-    } catch (_) {
-      // Fall through to throw original generateContent response error
+      return 'Interaction response received.';
     }
 
-    final body = response.body;
-    throw 'Gemini HTTP ${response.statusCode}: $body';
+    final errBody = response != null ? response.body : intResponse.body;
+    final statusCode = response != null ? response.statusCode : intResponse.statusCode;
+    throw 'Gemini HTTP $statusCode: $errBody';
   }
 
   // 2. Anthropic Claude API Call
