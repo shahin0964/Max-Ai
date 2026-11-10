@@ -1,13 +1,7 @@
 import 'package:flutter/material.dart';
-import '../screens/agent/agent_screen.dart';
-import '../screens/dashboard/dashboard_screen.dart';
-import '../screens/memory/memory_screen.dart';
-import '../screens/settings/settings_screen.dart';
-import '../services/ai_engine_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import 'glass_panel.dart';
-import 'model_selector_sheet.dart';
 
 class CyberDrawer extends StatelessWidget {
   final int selectedIndex;
@@ -15,7 +9,7 @@ class CyberDrawer extends StatelessWidget {
 
   const CyberDrawer({
     super.key,
-    required this.selectedIndex,
+    this.selectedIndex = 0,
     required this.onSelectTab,
   });
 
@@ -69,11 +63,11 @@ class CyberDrawer extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
+                      const Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Text(
+                            Text(
                               'MAX AI',
                               style: TextStyle(
                                 fontSize: 18,
@@ -82,8 +76,8 @@ class CyberDrawer extends StatelessWidget {
                                 color: AppTheme.cyan,
                               ),
                             ),
-                            const Text(
-                              'OpenJarvis Hybrid Core',
+                            Text(
+                              'OpenJarvis Slidebar Cockpit',
                               style: TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.textSecondary,
@@ -133,225 +127,53 @@ class CyberDrawer extends StatelessWidget {
               ),
             ),
 
-            // 2. Navigation Items List
+            // 2. Clean Canvas / Empty Space Reserved for Future Additions
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'NAVIGATION COCKPIT',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                  ),
-                  _buildNavItem(
-                    icon: Icons.chat_bubble_outline,
-                    activeIcon: Icons.chat_bubble,
-                    label: 'Chat Cockpit',
-                    index: 0,
-                    color: AppTheme.cyan,
-                    context: context,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.center_focus_strong_outlined,
-                    activeIcon: Icons.center_focus_strong,
-                    label: 'Jarvis Vision',
-                    index: 1,
-                    color: AppTheme.emerald,
-                    context: context,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.graphic_eq,
-                    activeIcon: Icons.graphic_eq,
-                    label: 'Holographic Voice',
-                    index: 2,
-                    color: AppTheme.violet,
-                    context: context,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.grid_view_outlined,
-                    activeIcon: Icons.grid_view,
-                    label: 'More Cockpit Hub',
-                    index: 3,
-                    color: AppTheme.amber,
-                    context: context,
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(),
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'SPECIALIZED MODULES',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                  ),
-
-                  _buildModuleItem(
-                    icon: Icons.hub,
-                    label: 'Autonomous Agent Hub',
-                    color: AppTheme.amber,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const AgentScreen()),
-                      );
-                    },
-                  ),
-                  _buildModuleItem(
-                    icon: Icons.psychology,
-                    label: 'OpenJarvis Memory Stack',
-                    color: AppTheme.violet,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const MemoryScreen()),
-                      );
-                    },
-                  ),
-                  _buildModuleItem(
-                    icon: Icons.speed,
-                    label: 'Telemetry & Bug Monitor',
-                    color: AppTheme.cyan,
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const DashboardScreen()),
-                      );
-                    },
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 8),
-                    child: Divider(),
-                  ),
-
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    child: Text(
-                      'SYSTEM CONFIGURATION',
-                      style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
-                        color: AppTheme.textMuted,
-                      ),
-                    ),
-                  ),
-
-                  // ⚙️ MAIN SETTINGS BUTTON (Opens Detailed Options inside)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: GlassPanel(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      borderRadius: 12,
-                      borderColor: AppTheme.cyan.withValues(alpha: 0.3),
-                      backgroundColor: AppTheme.surfaceElevated,
-                      onTap: () {
-                        Navigator.pop(context); // Close Drawer
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(builder: (ctx) => const SettingsScreen()),
-                        );
-                      },
-                      child: const Row(
-                        children: [
-                          Icon(Icons.settings, color: AppTheme.cyan, size: 20),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Settings & Parameters',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  'API Keys, Neural Voice, Prompts',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppTheme.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24.0),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: AppTheme.cyan.withValues(alpha: 0.08),
+                          border: Border.all(
+                            color: AppTheme.cyan.withValues(alpha: 0.25),
+                            width: 1,
                           ),
-                          Icon(Icons.arrow_forward_ios, size: 14, color: AppTheme.cyan),
-                        ],
+                        ),
+                        child: const Icon(
+                          Icons.dashboard_customize_outlined,
+                          size: 32,
+                          color: AppTheme.cyan,
+                        ),
                       ),
-                    ),
-                  ),
-
-                  // Quick Model Switcher in Sidebar
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 6),
-                    child: GlassPanel(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      borderRadius: 12,
-                      borderColor: AppTheme.surfaceGlassBorder,
-                      backgroundColor: AppTheme.surface,
-                      onTap: () {
-                        Navigator.pop(context);
-                        showModalBottomSheet(
-                          context: context,
-                          backgroundColor: Colors.transparent,
-                          isScrollControlled: true,
-                          builder: (ctx) => const ModelSelectorSheet(),
-                        );
-                      },
-                      child: const Row(
-                        children: [
-                          Icon(Icons.swap_horiz, color: AppTheme.emerald, size: 20),
-                          SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Switch AI Model',
-                                  style: TextStyle(
-                                    fontSize: 12.5,
-                                    fontWeight: FontWeight.bold,
-                                    color: AppTheme.textPrimary,
-                                  ),
-                                ),
-                                Text(
-                                  'Gemini, Claude, GPT, Local Ollama',
-                                  style: TextStyle(
-                                    fontSize: 10,
-                                    color: AppTheme.textMuted,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(Icons.arrow_drop_down, size: 16, color: AppTheme.textMuted),
-                        ],
+                      const SizedBox(height: 16),
+                      const Text(
+                        'SLIDEBAR DOCKED',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 1.5,
+                          color: AppTheme.textPrimary,
+                        ),
                       ),
-                    ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'This space is reserved for your upcoming custom tools, widgets & shortcuts.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppTheme.textMuted,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
 
@@ -386,7 +208,7 @@ class CyberDrawer extends StatelessWidget {
                       border: Border.all(color: AppTheme.emerald, width: 0.8),
                     ),
                     child: const Text(
-                      'ONLINE',
+                      'READY',
                       style: TextStyle(
                         fontSize: 9,
                         fontWeight: FontWeight.bold,
@@ -399,81 +221,6 @@ class CyberDrawer extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem({
-    required IconData icon,
-    required IconData activeIcon,
-    required String label,
-    required int index,
-    required Color color,
-    required BuildContext context,
-  }) {
-    final isSelected = selectedIndex == index;
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
-        leading: Icon(
-          isSelected ? activeIcon : icon,
-          color: isSelected ? color : AppTheme.textSecondary,
-          size: 20,
-        ),
-        title: Text(
-          label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? color : AppTheme.textPrimary,
-          ),
-        ),
-        trailing: isSelected
-            ? Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: color,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(color: color, blurRadius: 6, spreadRadius: 1),
-                  ],
-                ),
-              )
-            : null,
-        onTap: () {
-          Navigator.pop(context); // Close Drawer
-          onSelectTab(index);
-        },
-      ),
-    );
-  }
-
-  Widget _buildModuleItem({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: ListTile(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        tileColor: Colors.transparent,
-        leading: Icon(icon, color: color, size: 20),
-        title: Text(
-          label,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            color: AppTheme.textPrimary,
-          ),
-        ),
-        trailing: Icon(Icons.arrow_forward_ios, size: 12, color: color.withValues(alpha: 0.6)),
-        onTap: onTap,
       ),
     );
   }
