@@ -153,21 +153,71 @@ class AIEngineService {
       body: jsonEncode(payload),
     ).timeout(const Duration(seconds: 25));
 
-    if (response.statusCode != 200) {
-      final body = response.body;
-      throw 'Gemini HTTP ${response.statusCode}: $body';
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      final candidates = json['candidates'] as List<dynamic>?;
+      if (candidates != null && candidates.isNotEmpty) {
+        final content = candidates.first['content'] as Map<String, dynamic>?;
+        final parts = content?['parts'] as List<dynamic>?;
+        if (parts != null && parts.isNotEmpty) {
+          return parts.first['text'] as String? ?? 'No response generated.';
+        }
+      }
+      return 'Empty response from Gemini.';
     }
 
-    final json = jsonDecode(response.body) as Map<String, dynamic>;
-    final candidates = json['candidates'] as List<dynamic>?;
-    if (candidates != null && candidates.isNotEmpty) {
-      final content = candidates.first['content'] as Map<String, dynamic>?;
-      final parts = content?['parts'] as List<dynamic>?;
-      if (parts != null && parts.isNotEmpty) {
-        return parts.first['text'] as String? ?? 'No response generated.';
+    // Fallback: Google Interactions API (Standard for Gemini 3.8 Flash)
+    try {
+      final interactionUrl = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/interactions?key=$apiKey');
+
+      final lastUserMsg = history.isNotEmpty
+          ? history.reversed.firstWhere(
+              (m) => m.role == MessageRole.user,
+              orElse: () => history.last,
+            )
+          : null;
+
+      final userText = lastUserMsg?.content ?? 'Hello';
+
+      final interactionPayload = {
+        'model': model,
+        'input': userText,
+        'system_instruction': systemPrompt,
+      };
+
+      final intResponse = await http.post(
+        interactionUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(interactionPayload),
+      ).timeout(const Duration(seconds: 25));
+
+      if (intResponse.statusCode == 200) {
+        final intJson = jsonDecode(intResponse.body) as Map<String, dynamic>;
+        if (intJson.containsKey('output_text') && intJson['output_text'] != null) {
+          return intJson['output_text'] as String;
+        }
+        final steps = intJson['steps'] as List<dynamic>?;
+        if (steps != null) {
+          for (final s in steps.reversed) {
+            final content = s['content'] as List<dynamic>?;
+            if (content != null && content.isNotEmpty) {
+              for (final c in content) {
+                if (c is Map<String, dynamic> && c['text'] != null) {
+                  return c['text'] as String;
+                }
+              }
+            }
+          }
+        }
+        return 'Interaction response received.';
       }
+    } catch (_) {
+      // Fall through to throw original generateContent response error
     }
-    return 'Empty response from Gemini.';
+
+    final body = response.body;
+    throw 'Gemini HTTP ${response.statusCode}: $body';
   }
 
   // 2. Anthropic Claude API Call

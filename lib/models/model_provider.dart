@@ -27,29 +27,35 @@ class AIModelInfo {
   static const List<AIModelInfo> availableModels = [
     // Gemini
     AIModelInfo(
-      id: 'gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
+      id: 'gemini-3.8-flash',
+      name: 'Gemini 3.8 Flash',
       provider: AIProvider.gemini,
-      description: 'Ultra-fast multimodal, latest flagship flash',
+      description: 'Frontier high-speed multimodal reasoning & agent engine',
       isDefault: true,
     ),
     AIModelInfo(
-      id: 'gemini-1.5-flash',
-      name: 'Gemini 1.5 Flash',
+      id: 'gemini-3.7-flash',
+      name: 'Gemini 3.7 Flash',
       provider: AIProvider.gemini,
-      description: 'High-speed, stable general reasoning',
+      description: 'High-speed reasoning and deterministic tool calling',
     ),
     AIModelInfo(
-      id: 'gemini-1.5-pro',
-      name: 'Gemini 1.5 Pro',
+      id: 'gemini-3.5-flash',
+      name: 'Gemini 3.5 Flash',
       provider: AIProvider.gemini,
-      description: 'Complex reasoning & deep analysis flagship',
+      description: 'Foundational multi-step execution model',
     ),
     AIModelInfo(
-      id: 'gemini-2.0-flash-lite',
-      name: 'Gemini 2.0 Flash Lite',
+      id: 'gemini-2.5-flash',
+      name: 'Gemini 2.5 Flash',
       provider: AIProvider.gemini,
-      description: 'Ultra-lightweight, minimal token footprint',
+      description: '1M token hybrid reasoning model',
+    ),
+    AIModelInfo(
+      id: 'gemini-2.5-pro',
+      name: 'Gemini 2.5 Pro',
+      provider: AIProvider.gemini,
+      description: 'Multipurpose complex coding and reasoning model',
     ),
 
     // Claude
