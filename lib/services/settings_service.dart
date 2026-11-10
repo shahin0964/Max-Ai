@@ -28,7 +28,7 @@ class SettingsService extends ChangeNotifier {
   String _voiceId = 'wDsJlOXPqcvIUKdLXjDs';
   String _localServerUrl = 'http://127.0.0.1:8000';
   AIProvider _activeProvider = AIProvider.gemini;
-  String _activeModelId = 'gemini-2.5-flash';
+  String _activeModelId = 'gemini-2.0-flash';
   String _systemPrompt =
       'You are Max AI, an advanced, ultra-responsive autonomous AI assistant powered by the OpenJarvis framework. You provide clear, concise, highly intelligent answers and invoke tools proactively when needed.';
   double _temperature = 0.7;
@@ -63,7 +63,14 @@ class SettingsService extends ChangeNotifier {
       );
     }
 
-    _activeModelId = _prefs.getString(_kActiveModelId) ?? 'gemini-2.5-flash';
+    _activeModelId = _prefs.getString(_kActiveModelId) ?? 'gemini-2.0-flash';
+    // Auto-migrate legacy non-existent model IDs
+    if (_activeModelId == 'gemini-2.5-flash' ||
+        _activeModelId == 'gemini-3.8-pro' ||
+        _activeModelId == 'gemini-2.5-flash-lite') {
+      _activeModelId = 'gemini-2.0-flash';
+      await _prefs.setString(_kActiveModelId, _activeModelId);
+    }
     _systemPrompt = _prefs.getString(_kSystemPrompt) ?? _systemPrompt;
     _temperature = _prefs.getDouble(_kTemperature) ?? 0.7;
     _ttsRate = _prefs.getDouble(_kTtsRate) ?? 0.55;

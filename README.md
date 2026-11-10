@@ -119,5 +119,5 @@ MaxAi_OpenJarvis/
 ## ⚙️ Configuration & Local OpenJarvis Server
 
 In **Settings & Model Config** inside the app:
-- **Google Gemini API Key**: Add your Gemini key to use `gemini-2.5-flash` or `gemini-3.8-pro`.
+- **Google Gemini API Key**: Add your Gemini key to use `gemini-2.0-flash`, `gemini-1.5-flash`, or `gemini-1.5-pro`.
 - **OpenJarvis / Ollama Local Server**: Set URL to `http://127.0.0.1:8000` (if running OpenJarvis daemon on Termux) or your PC's LAN IP `http://192.168.x.x:8000` to run 100% on-device/local AI!
