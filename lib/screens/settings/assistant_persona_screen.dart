@@ -11,24 +11,24 @@ class AssistantPersonaScreen extends StatefulWidget {
   State<AssistantPersonaScreen> createState() => _AssistantPersonaScreenState();
 }
 
-class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
+class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> with SingleTickerProviderStateMixin {
+  late TabController _tabController;
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _drivingSmsController = TextEditingController();
 
-  String _selectedPersona = 'Max AI';
-  String _selectedVoiceEngine = 'Normal Swift';
-  String _selectedLanguage = 'Bengali + English';
-  String _selectedSleepTimer = '10 min';
-  String _activeVoiceStyle = 'Damdaar';
-  String _secretMode = 'Friendly';
+  late String _selectedPersona;
+  late String _selectedVoiceEngine;
+  late String _selectedLanguage;
+  late String _selectedSleepTimer;
+  late String _activeVoiceName;
+  late String _activeVoiceGender;
+  late String _secretMode;
 
-  bool _memoryAutoLearn = true;
-  bool _secretModeEnabled = false;
-  bool _reelsAutoScroll = false;
-  bool _callAnnouncement = true;
-  bool _callLoudspeaker = false;
-  bool _drivingMode = false;
-  bool _bgAutoUpdate = true;
+  late bool _memoryAutoLearn;
+  late bool _secretModeEnabled;
+  late bool _callAnnouncement;
+  late bool _callLoudspeaker;
+  late bool _drivingMode;
 
   final List<String> _personas = [
     'Max AI',
@@ -57,30 +57,105 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
     '45 min',
   ];
 
-  final List<Map<String, String>> _voiceStyles = [
-    {'title': 'Damdaar', 'sub': 'Kore • Bold & Authoritative'},
-    {'title': 'Halki-phulki', 'sub': 'Aoede • Gentle & Relaxed'},
-    {'title': 'Jawaan', 'sub': 'Leda • Energetic & Youthful'},
-    {'title': 'Chamakdaar', 'sub': 'Zephyr • Crisp & Brilliant'},
-    {'title': 'Josheeli', 'sub': 'Laomedeia • Passionate'},
-    {'title': 'Mulaayam', 'sub': 'Despina • Soft & Warm'},
-    {'title': 'Mature', 'sub': 'Gacrux • Experienced Mentor'},
-    {'title': 'Komal', 'sub': 'Vindemiatrix • Sweet & Calming'},
+  // Official 36 Google Gemini Neural Voices Catalog
+  final List<Map<String, String>> _femaleVoices = [
+    {'name': 'Kore', 'desc': 'Bold, clear & authoritative (Default)'},
+    {'name': 'Aoede', 'desc': 'Breezy, cheerful & pleasant'},
+    {'name': 'Zephyr', 'desc': 'Crisp, brilliant & energetic'},
+    {'name': 'Leda', 'desc': 'Youthful, dynamic & bright'},
+    {'name': 'Callirrhoe', 'desc': 'Melodic, expressive & lyrical'},
+    {'name': 'Autonoe', 'desc': 'Calm, articulate & balanced'},
+    {'name': 'Despina', 'desc': 'Soft, warm & intimate'},
+    {'name': 'Erinome', 'desc': 'Friendly, conversational & natural'},
+    {'name': 'Laomedeia', 'desc': 'Passionate, dramatic & vibrant'},
+    {'name': 'Achernar', 'desc': 'Crisp, refined & professional'},
+    {'name': 'Vega', 'desc': 'Bright, luminous & radiant'},
+    {'name': 'Polaris', 'desc': 'Steady, confident & guiding'},
+    {'name': 'Bellatrix', 'desc': 'Sharp, agile & assertive'},
+    {'name': 'Capella', 'desc': 'Uplifting, resonant & optimistic'},
+    {'name': 'Alcyone', 'desc': 'Serene, peaceful & tranquil'},
+    {'name': 'Electra', 'desc': 'Vivid, electric & sharp'},
+    {'name': 'Maia', 'desc': 'Gentle, nurturing & graceful'},
+  ];
+
+  final List<Map<String, String>> _maleVoices = [
+    {'name': 'Puck', 'desc': 'Playful, witty & agile'},
+    {'name': 'Charon', 'desc': 'Deep, resonant & steady'},
+    {'name': 'Fenrir', 'desc': 'Rugged, bold & commanding'},
+    {'name': 'Orus', 'desc': 'Authoritative, grounded & clear'},
+    {'name': 'Enceladus', 'desc': 'Calm, soothing & gentle'},
+    {'name': 'Iapetus', 'desc': 'Deep, stoic & solid'},
+    {'name': 'Umbriel', 'desc': 'Mysterious, smooth & rich'},
+    {'name': 'Algieba', 'desc': 'Confident, articulate & focused'},
+    {'name': 'Algenib', 'desc': 'Crisp, executive & poised'},
+    {'name': 'Rasalgethi', 'desc': 'Robust, distinguished & warm'},
+    {'name': 'Alnilam', 'desc': 'Grand, stately & commanding'},
+    {'name': 'Schedar', 'desc': 'Noble, balanced & deliberate'},
+    {'name': 'Gacrux', 'desc': 'Seasoned mentor, deep & experienced'},
+    {'name': 'Sadalbari', 'desc': 'Relaxed, natural & easygoing'},
+    {'name': 'Mirfak', 'desc': 'Sharp, precise & decisive'},
+    {'name': 'Sirius', 'desc': 'Powerful, punchy & commanding'},
+    {'name': 'Rigel', 'desc': 'Direct, bold & confident'},
+    {'name': 'Castor', 'desc': 'Youthful, clever & witty'},
+    {'name': 'Pollux', 'desc': 'Strong, resonant & charismatic'},
   ];
 
   @override
   void initState() {
     super.initState();
-    _nameController.text = 'Max AI';
-    _drivingSmsController.text =
-        'Max AI Auto-Reply: Shahin is currently driving and cannot attend your call right now. Will call back soon.';
+    _tabController = TabController(length: 2, vsync: this);
+    final s = SettingsService.instance;
+    _nameController.text = s.assistantName;
+    _drivingSmsController.text = s.drivingSmsText;
+    _selectedPersona = s.assistantPersonaTone;
+    _selectedVoiceEngine = s.voiceEngine;
+    _selectedLanguage = s.assistantLanguage;
+    _selectedSleepTimer = s.sleepTimer;
+    _activeVoiceName = s.geminiVoiceName;
+    _activeVoiceGender = s.geminiVoiceGender;
+    _secretMode = s.companionLevel;
+    _memoryAutoLearn = s.memoryAutoLearn;
+    _secretModeEnabled = s.companionMode;
+    _callAnnouncement = s.callAnnouncement;
+    _callLoudspeaker = s.callLoudspeaker;
+    _drivingMode = s.drivingMode;
+
+    if (_activeVoiceGender == 'male') {
+      _tabController.index = 1;
+    }
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _nameController.dispose();
     _drivingSmsController.dispose();
     super.dispose();
+  }
+
+  void _saveAllSettings() {
+    final s = SettingsService.instance;
+    s.setAssistantName(_nameController.text.trim());
+    s.setAssistantPersonaTone(_selectedPersona);
+    s.setVoiceEngine(_selectedVoiceEngine);
+    s.setAssistantLanguage(_selectedLanguage);
+    s.setSleepTimer(_selectedSleepTimer);
+    s.setGeminiVoice(_activeVoiceName, _activeVoiceGender);
+    s.setCompanionMode(_secretModeEnabled);
+    s.setCompanionLevel(_secretMode);
+    s.setMemoryAutoLearn(_memoryAutoLearn);
+    s.setCallAnnouncement(_callAnnouncement);
+    s.setCallLoudspeaker(_callLoudspeaker);
+    s.setDrivingMode(_drivingMode);
+    s.setDrivingSmsText(_drivingSmsController.text.trim());
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('All Settings & Voice ($_activeVoiceName) saved successfully!'),
+        backgroundColor: AppTheme.emerald,
+      ),
+    );
+    Navigator.pop(context);
   }
 
   @override
@@ -144,10 +219,10 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 2. Neural Voice Engine & Voice Styles
-            _buildSectionHeader('NEURAL VOICE ENGINE'),
+            // 2. Neural Voice Engine & 30+ Official Gemini Voices
+            _buildSectionHeader('GOOGLE GEMINI NEURAL VOICES (36 VOICES)'),
             GlassPanel(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -169,7 +244,7 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
                       Expanded(
                         child: _buildEngineOption(
                           title: 'Agentic Mind',
-                          desc: 'Deep reasoning reasoning',
+                          desc: 'Deep reasoning speech',
                           icon: Icons.auto_awesome,
                           selected: _selectedVoiceEngine == 'Agentic Mind',
                           color: AppTheme.violet,
@@ -179,48 +254,71 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
                     ],
                   ),
                   const SizedBox(height: 14),
-                  const Text('Select Voice Persona Style', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                  const SizedBox(height: 8),
-                  ..._voiceStyles.map((vs) {
-                    final isSel = _activeVoiceStyle == vs['title'];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      decoration: BoxDecoration(
-                        color: isSel ? AppTheme.cyan.withValues(alpha: 0.12) : AppTheme.surface,
+                  
+                  // Gender Tabs
+                  Container(
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: TabBar(
+                      controller: _tabController,
+                      indicator: BoxDecoration(
+                        color: AppTheme.cyan.withValues(alpha: 0.25),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: isSel ? AppTheme.cyan : AppTheme.surfaceGlassBorder,
-                          width: 1,
-                        ),
+                        border: Border.all(color: AppTheme.cyan, width: 1.2),
                       ),
-                      child: ListTile(
-                        dense: true,
-                        title: Text(vs['title']!, style: TextStyle(color: isSel ? AppTheme.cyan : AppTheme.textPrimary, fontWeight: FontWeight.bold)),
-                        subtitle: Text(vs['sub']!, style: const TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.play_circle_fill, color: AppTheme.emerald, size: 22),
-                              tooltip: 'Preview Voice',
-                              onPressed: () {
-                                VoiceService.instance.speak('Hello! I am ${vs['title']} voice from Max AI.');
-                              },
-                            ),
-                            if (isSel) const Icon(Icons.check_circle, color: AppTheme.cyan, size: 20),
-                          ],
+                      labelColor: AppTheme.cyan,
+                      unselectedLabelColor: AppTheme.textMuted,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      tabs: const [
+                        Tab(
+                          iconMargin: EdgeInsets.zero,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.female, size: 16, color: AppTheme.rose),
+                              SizedBox(width: 6),
+                              Text('FEMALE (17)'),
+                            ],
+                          ),
                         ),
-                        onTap: () => setState(() => _activeVoiceStyle = vs['title']!),
-                      ),
-                    );
-                  }),
+                        Tab(
+                          iconMargin: EdgeInsets.zero,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.male, size: 16, color: AppTheme.cyan),
+                              SizedBox(width: 6),
+                              Text('MALE (19)'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Voice List Container
+                  SizedBox(
+                    height: 340,
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        _buildVoiceList(_femaleVoices, isFemale: true),
+                        _buildVoiceList(_maleVoices, isFemale: false),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 3. Secret & Relationship Settings (Companion Mode)
+            // 3. Companion & Secret Settings
             _buildSectionHeader('COMPANION & SECRET SETTINGS'),
             GlassPanel(
               padding: const EdgeInsets.all(14),
@@ -246,75 +344,61 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 4. Autonomous Memory (Yaaddasht)
-            _buildSectionHeader('AUTONOMOUS MEMORY (YAADDASHT)'),
-            GlassPanel(
-              padding: const EdgeInsets.all(14),
-              child: SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('Max ko khud se yaad rakhne do', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                subtitle: const Text('Auto-extract user preferences, routines & facts from conversations into semantic vector memory', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                value: _memoryAutoLearn,
-                activeColor: AppTheme.emerald,
-                onChanged: (val) => setState(() => _memoryAutoLearn = val),
-              ),
-            ),
-
-            const SizedBox(height: 14),
-
-            // 5. Automation & Media
-            _buildSectionHeader('PHONE & APP AUTOMATIONS'),
+            // 4. Intelligent Automations & Driving Mode
+            _buildSectionHeader('INTELLIGENT AUTOMATIONS & DRIVING'),
             GlassPanel(
               padding: const EdgeInsets.all(14),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Reels Auto-Scroll', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    subtitle: const Text('Keep Instagram/YouTube Shorts auto-scrolling with smart timer', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
-                    value: _reelsAutoScroll,
+                    title: const Text('Auto-Memory & Context Learning', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Automatically remember preferences, names, and routine tasks', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    value: _memoryAutoLearn,
                     activeColor: AppTheme.cyan,
-                    onChanged: (val) => setState(() => _reelsAutoScroll = val),
+                    onChanged: (val) => setState(() => _memoryAutoLearn = val),
                   ),
                   const Divider(color: AppTheme.surfaceGlassBorder),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Call Announcement', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    subtitle: const Text('Speak caller name aloud via neural voice on incoming call', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    title: const Text('Incoming Caller ID Announcement', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Max announces who is calling using neural speech', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                     value: _callAnnouncement,
                     activeColor: AppTheme.cyan,
                     onChanged: (val) => setState(() => _callAnnouncement = val),
                   ),
-                  if (_callAnnouncement)
-                    SwitchListTile(
-                      contentPadding: const EdgeInsets.only(left: 12),
-                      title: const Text('Auto Loudspeaker', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-                      subtitle: const Text('Put call automatically on speaker when Max answers', style: TextStyle(fontSize: 10, color: AppTheme.textMuted)),
-                      value: _callLoudspeaker,
-                      activeColor: AppTheme.emerald,
-                      onChanged: (val) => setState(() => _callLoudspeaker = val),
-                    ),
                   const Divider(color: AppTheme.surfaceGlassBorder),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Driving Mode', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.textPrimary)),
-                    subtitle: const Text('Auto-reject incoming calls and send instant WhatsApp/SMS note', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    title: const Text('Auto-Answer on Loudspeaker', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Automatically answers after 2 rings when on desk or driving', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
+                    value: _callLoudspeaker,
+                    activeColor: AppTheme.cyan,
+                    onChanged: (val) => setState(() => _callLoudspeaker = val),
+                  ),
+                  const Divider(color: AppTheme.surfaceGlassBorder),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Driving Mode Auto-Pilot', style: TextStyle(color: AppTheme.textPrimary, fontSize: 13, fontWeight: FontWeight.w600)),
+                    subtitle: const Text('Auto-reject calls and reply with instant custom message', style: TextStyle(fontSize: 11, color: AppTheme.textMuted)),
                     value: _drivingMode,
                     activeColor: AppTheme.amber,
                     onChanged: (val) => setState(() => _drivingMode = val),
                   ),
                   if (_drivingMode) ...[
+                    const SizedBox(height: 8),
+                    const Text('Auto-Reply Message Template', style: TextStyle(fontSize: 11, color: AppTheme.textSecondary)),
                     const SizedBox(height: 6),
                     TextField(
                       controller: _drivingSmsController,
                       maxLines: 2,
-                      style: const TextStyle(fontSize: 12, color: AppTheme.textPrimary),
+                      style: const TextStyle(color: AppTheme.textPrimary, fontSize: 12),
                       decoration: InputDecoration(
                         filled: true,
                         fillColor: AppTheme.surface,
-                        hintText: 'Driving auto-reply text template...',
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                       ),
                     ),
@@ -323,20 +407,23 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
               ),
             ),
 
-            const SizedBox(height: 14),
+            const SizedBox(height: 16),
 
-            // 6. Language & Standby Timeout
-            _buildSectionHeader('LANGUAGE & POWER STANDBY'),
+            // 5. Language & Sleep Timer
+            _buildSectionHeader('LANGUAGE & STANDBY TIMER'),
             GlassPanel(
               padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Conversational Language (Bhasha)', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  const Text('Active AI Voice Language', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 6),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12),
-                    decoration: BoxDecoration(color: AppTheme.surface, borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(
+                      color: AppTheme.surface,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
                         value: _selectedLanguage,
@@ -352,7 +439,7 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  const Text('Koi na bole to so jao (Standby Sleep Timer)', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+                  const Text('Standby Sleep Timer (Auto-Sleep)', style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -373,25 +460,102 @@ class _AssistantPersonaScreenState extends State<AssistantPersonaScreen> {
             ),
 
             const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Assistant Persona & Automations saved successfully!')),
-                );
-                Navigator.pop(context);
-              },
+            ElevatedButton.icon(
+              onPressed: _saveAllSettings,
+              icon: const Icon(Icons.save_rounded, size: 20),
+              label: const Text('SAVE ALL CONFIGURATION', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.cyan,
                 foregroundColor: Colors.black,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               ),
-              child: const Text('SAVE CONFIGURATION', style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2)),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildVoiceList(List<Map<String, String>> voices, {required bool isFemale}) {
+    return ListView.builder(
+      itemCount: voices.length,
+      padding: const EdgeInsets.only(top: 4, bottom: 4),
+      itemBuilder: (ctx, index) {
+        final v = voices[index];
+        final name = v['name']!;
+        final desc = v['desc']!;
+        final isSel = _activeVoiceName == name;
+        final genderStr = isFemale ? 'female' : 'male';
+        final accentColor = isFemale ? AppTheme.rose : AppTheme.cyan;
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 6),
+          decoration: BoxDecoration(
+            color: isSel ? accentColor.withValues(alpha: 0.12) : AppTheme.surface,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: isSel ? accentColor : AppTheme.surfaceGlassBorder,
+              width: isSel ? 1.4 : 0.8,
+            ),
+          ),
+          child: ListTile(
+            dense: true,
+            leading: CircleAvatar(
+              radius: 16,
+              backgroundColor: isSel ? accentColor.withValues(alpha: 0.25) : AppTheme.surfaceElevated,
+              child: Icon(
+                isFemale ? Icons.female : Icons.male,
+                color: isSel ? accentColor : AppTheme.textSecondary,
+                size: 18,
+              ),
+            ),
+            title: Text(
+              name,
+              style: TextStyle(
+                color: isSel ? accentColor : AppTheme.textPrimary,
+                fontWeight: FontWeight.bold,
+                fontSize: 13,
+              ),
+            ),
+            subtitle: Text(
+              desc,
+              style: const TextStyle(fontSize: 10.5, color: AppTheme.textMuted),
+            ),
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.volume_up_rounded, color: AppTheme.emerald, size: 20),
+                  tooltip: 'Preview Voice',
+                  onPressed: () {
+                    VoiceService.instance.speak('Hello! I am $name, neural voice for Max AI.');
+                  },
+                ),
+                if (isSel)
+                  Icon(Icons.check_circle, color: accentColor, size: 20)
+                else
+                  const Icon(Icons.circle_outlined, color: AppTheme.textMuted, size: 18),
+              ],
+            ),
+            onTap: () {
+              setState(() {
+                _activeVoiceName = name;
+                _activeVoiceGender = genderStr;
+              });
+              SettingsService.instance.setGeminiVoice(name, genderStr);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Selected Gemini Voice: $name ($genderStr)'),
+                  duration: const Duration(seconds: 1),
+                  backgroundColor: accentColor,
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 

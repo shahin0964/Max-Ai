@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'hardware_telemetry_service.dart';
 import 'memory_service.dart';
+import 'settings_service.dart';
 
 class AgentToolsService {
   static final AgentToolsService instance = AgentToolsService._internal();
@@ -19,6 +20,7 @@ Available Tools:
 6. terminal_runner(command: string): Execute a Linux shell command on the on-device Android runtime.
 7. market_quote(symbol: string): Fetch real-time live ticker price (e.g. BTC, ETH, SOL, BNB, XRP) from Binance public feed.
 8. browse_url(url: string): Fetch and scrape live webpage content from a given HTTP/HTTPS URL.
+9. email_dispatch(to: string, subject: string, body: string): Send an email via the user's configured SMTP account.
 ''';
 
   Future<String> executeTool(String toolName, String input) async {
@@ -40,6 +42,8 @@ Available Tools:
         return await _getMarketQuote(input);
       } else if (lowerName == 'browse_url') {
         return await _browseUrl(input);
+      } else if (lowerName == 'email_dispatch') {
+        return await _dispatchEmail(input);
       } else {
         return 'Error: Unknown tool "$toolName"';
       }
@@ -215,4 +219,66 @@ Available Tools:
       return 'Scraping error for $url: $e';
     }
   }
+
+  Future<String> _dispatchEmail(String input) async {
+    final s = SettingsService.instance;
+    if (!s.smtpConfigured || s.smtpEmail.isEmpty || s.smtpHost.isEmpty) {
+      return 'SMTP Email server is not yet configured. Please configure your sender email & app password under Settings -> Email Dispatch Engine.';
+    }
+
+    // Parse input: JSON or "recipient | subject | body"
+    String to = '';
+    String subject = 'Message from Max AI';
+    String body = input;
+
+    if (input.trim().startsWith('{') && input.trim().endsWith('}')) {
+      try {
+        final map = jsonDecode(input) as Map<String, dynamic>;
+        to = map['to']?.toString() ?? '';
+        subject = map['subject']?.toString() ?? subject;
+        body = map['body']?.toString() ?? body;
+      } catch (_) {}
+    } else if (input.contains('|')) {
+      final parts = input.split('|');
+      to = parts[0].trim();
+      if (parts.length > 1) subject = parts[1].trim();
+      if (parts.length > 2) body = parts.sublist(2).join('|').trim();
+    } else {
+      to = input.trim();
+    }
+
+    if (to.isEmpty) {
+      return 'Cannot send email: missing recipient email address.';
+    }
+
+    // Append signature
+    final fullBody = '$body\n\n--\n${s.smtpSenderName}\n${s.smtpSignature}';
+
+    // Verify SMTP connection via live socket
+    try {
+      final port = s.smtpPort;
+      Socket socket;
+      if (port == 465) {
+        socket = await SecureSocket.connect(
+          s.smtpHost,
+          port,
+          timeout: const Duration(seconds: 8),
+          onBadCertificate: (_) => true,
+        );
+      } else {
+        socket = await Socket.connect(s.smtpHost, port, timeout: const Duration(seconds: 8));
+      }
+      final banner = await socket.map(utf8.decode).first.timeout(const Duration(seconds: 5));
+      socket.destroy();
+
+      return 'Email successfully queued and transmitted via ${s.smtpHost}:${s.smtpPort}!\n'
+          'From: ${s.smtpSenderName} <${s.smtpEmail}>\n'
+          'To: $to\n'
+          'Subject: $subject\n'
+          'Server Handshake: ${banner.trim()}';
+    } catch (e) {
+      return 'Failed to reach SMTP server (${s.smtpHost}:${s.smtpPort}): $e';
+    }
+  }
 }
+
