@@ -5,6 +5,7 @@ import 'services/diagnostics_logger_service.dart';
 import 'services/hardware_telemetry_service.dart';
 import 'services/memory_service.dart';
 import 'services/settings_service.dart';
+import 'services/skill_registry_service.dart';
 import 'services/voice_service.dart';
 import 'theme/app_theme.dart';
 
@@ -25,6 +26,7 @@ Future<void> main() async {
   await DiagnosticsLoggerService.instance.init();
   await SettingsService.instance.init();
   await MemoryService.instance.init();
+  await SkillRegistryService.instance.initialize();
   await VoiceService.instance.init();
   HardwareTelemetryService.instance.init();
 

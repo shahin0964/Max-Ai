@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'hardware_telemetry_service.dart';
 import 'memory_service.dart';
@@ -15,6 +16,9 @@ Available Tools:
 3. memory_recall(query: string): Search long-term OpenJarvis memory for stored user facts or preferences.
 4. save_memory(title: string, content: string, category: string): Store a new fact, preference or task to long-term memory.
 5. calculator(expression: string): Compute a mathematical expression accurately.
+6. terminal_runner(command: string): Execute a Linux shell command on the on-device Android runtime.
+7. market_quote(symbol: string): Fetch real-time live ticker price (e.g. BTC, ETH, SOL, BNB, XRP) from Binance public feed.
+8. browse_url(url: string): Fetch and scrape live webpage content from a given HTTP/HTTPS URL.
 ''';
 
   Future<String> executeTool(String toolName, String input) async {
@@ -30,6 +34,12 @@ Available Tools:
         return await _saveMemory(input);
       } else if (lowerName == 'calculator') {
         return _calculate(input);
+      } else if (lowerName == 'terminal_runner') {
+        return await _runTerminalCommand(input);
+      } else if (lowerName == 'market_quote') {
+        return await _getMarketQuote(input);
+      } else if (lowerName == 'browse_url') {
+        return await _browseUrl(input);
       } else {
         return 'Error: Unknown tool "$toolName"';
       }
@@ -137,5 +147,72 @@ Available Tools:
       return _evalBasic(str.substring(0, idx)) / denom;
     }
     return double.parse(str);
+  }
+
+  Future<String> _runTerminalCommand(String rawCmd) async {
+    final cmd = rawCmd.trim();
+    if (cmd.isEmpty) return 'No command provided.';
+    try {
+      final res = await Process.run('sh', ['-c', cmd]).timeout(const Duration(seconds: 15));
+      final stdout = res.stdout.toString().trim();
+      final stderr = res.stderr.toString().trim();
+      final buf = StringBuffer();
+      if (stdout.isNotEmpty) buf.writeln(stdout);
+      if (stderr.isNotEmpty) buf.writeln('STDERR: $stderr');
+      if (buf.isEmpty) buf.writeln('[Process exited with code ${res.exitCode}]');
+      return buf.toString();
+    } catch (e) {
+      return 'Command execution error: $e';
+    }
+  }
+
+  Future<String> _getMarketQuote(String rawSymbol) async {
+    var sym = rawSymbol.replaceAll('/', '').replaceAll('-', '').replaceAll(' ', '').toUpperCase().trim();
+    if (!sym.endsWith('USDT') && !sym.endsWith('BUSD')) {
+      sym = '${sym}USDT';
+    }
+
+    try {
+      final uri = Uri.parse('https://api.binance.com/api/v3/ticker/24hr?symbol=$sym');
+      final res = await http.get(uri).timeout(const Duration(seconds: 8));
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body) as Map<String, dynamic>;
+        final price = data['lastPrice'];
+        final change = data['priceChangePercent'];
+        final high = data['highPrice'];
+        final low = data['lowPrice'];
+        final vol = data['volume'];
+        return 'Live Market Data for $sym:\nPrice: \$$price USD (${double.parse(change.toString()) >= 0 ? "+" : ""}$change% 24h)\n24h High: \$$high | 24h Low: \$$low\nVolume: $vol';
+      }
+      return 'Could not retrieve price for $sym (HTTP ${res.statusCode})';
+    } catch (e) {
+      return 'Market feed error for $sym: $e';
+    }
+  }
+
+  Future<String> _browseUrl(String rawUrl) async {
+    var url = rawUrl.trim();
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      url = 'https://$url';
+    }
+
+    try {
+      final uri = Uri.parse(url);
+      final res = await http.get(uri).timeout(const Duration(seconds: 12));
+      if (res.statusCode == 200) {
+        // Strip tags
+        String clean = res.body
+            .replaceAll(RegExp(r'<script[\s\S]*?</script>', caseSensitive: false), ' ')
+            .replaceAll(RegExp(r'<style[\s\S]*?</style>', caseSensitive: false), ' ')
+            .replaceAll(RegExp(r'<[^>]*>'), ' ')
+            .replaceAll(RegExp(r'\s+'), ' ')
+            .trim();
+        if (clean.length > 2500) clean = clean.substring(0, 2500);
+        return 'Fetched $url (HTTP ${res.statusCode}):\n$clean';
+      }
+      return 'HTTP ${res.statusCode} when fetching $url';
+    } catch (e) {
+      return 'Scraping error for $url: $e';
+    }
   }
 }
