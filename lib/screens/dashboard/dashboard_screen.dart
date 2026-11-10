@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import '../../services/ai_engine_service.dart';
 import '../../services/diagnostics_logger_service.dart';
 import '../../services/hardware_telemetry_service.dart';
@@ -383,7 +384,7 @@ class DashboardScreen extends StatelessWidget {
               val,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: AppTheme.textPrimary,
@@ -399,10 +400,10 @@ class DashboardScreen extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+        Text(title, style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
         Text(
           value,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppTheme.textPrimary),
         ),
       ],
     );
