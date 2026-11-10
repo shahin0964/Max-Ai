@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Max AI</string>
+    <string name="accessibility_service_label">Max AI Screen Control</string>
+    <string name="accessibility_service_description">Max AI uses this service to read the screen layout and perform taps, swipes, scrolling, and typing on your behalf when you ask it to automate a task.</string>
+</resources>

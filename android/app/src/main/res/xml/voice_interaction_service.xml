@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<voice-interaction-service xmlns:android="http://schemas.android.com/apk/res/android"
+    android:sessionService="com.max.ai.MaxVoiceInteractionSessionService"
+    android:recognitionService="com.max.ai.MaxRecognitionService"
+    android:settingsActivity="com.max.ai.MainActivity"
+    android:supportsAssist="true" />
