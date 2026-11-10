@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("dev.flutter.flutter-gradle-plugin")
@@ -24,13 +27,13 @@ android {
 
     signingConfigs {
         create("release") {
-            val keyProperties = java.util.Properties()
+            val keyProperties = Properties()
             val keyPropertiesFile = file("key.properties")
             val rootKeyPropertiesFile = rootProject.file("key.properties")
             if (keyPropertiesFile.exists()) {
-                keyProperties.load(java.io.FileInputStream(keyPropertiesFile))
+                keyProperties.load(FileInputStream(keyPropertiesFile))
             } else if (rootKeyPropertiesFile.exists()) {
-                keyProperties.load(java.io.FileInputStream(rootKeyPropertiesFile))
+                keyProperties.load(FileInputStream(rootKeyPropertiesFile))
             }
 
             val customStorePath = keyProperties.getProperty("storeFile")
