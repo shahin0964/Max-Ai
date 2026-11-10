@@ -24,7 +24,21 @@ android {
 
     signingConfigs {
         create("release") {
-            val keystoreFile = if (file("release.jks").exists()) {
+            val keyProperties = java.util.Properties()
+            val keyPropertiesFile = file("key.properties")
+            val rootKeyPropertiesFile = rootProject.file("key.properties")
+            if (keyPropertiesFile.exists()) {
+                keyProperties.load(java.io.FileInputStream(keyPropertiesFile))
+            } else if (rootKeyPropertiesFile.exists()) {
+                keyProperties.load(java.io.FileInputStream(rootKeyPropertiesFile))
+            }
+
+            val customStorePath = keyProperties.getProperty("storeFile")
+            val keystoreFile = if (customStorePath != null && file(customStorePath).exists()) {
+                file(customStorePath)
+            } else if (customStorePath != null && rootProject.file(customStorePath).exists()) {
+                rootProject.file(customStorePath)
+            } else if (file("release.jks").exists()) {
                 file("release.jks")
             } else if (file("../release.jks").exists()) {
                 file("../release.jks")
@@ -36,21 +50,29 @@ android {
 
             if (keystoreFile != null) {
                 storeFile = keystoreFile
-                val rawStorePass = (project.findProperty("KEYSTORE_PASSWORD") as? String)
+                val rawStorePass = keyProperties.getProperty("storePassword")
+                    ?: (project.findProperty("KEYSTORE_PASSWORD") as? String)
                     ?: System.getenv("KEYSTORE_PASSWORD")
                     ?: "AbdurRahman321@@"
 
-                val rawKeyPass = (project.findProperty("KEY_PASSWORD") as? String)
+                val rawKeyPass = keyProperties.getProperty("keyPassword")
+                    ?: (project.findProperty("KEY_PASSWORD") as? String)
                     ?: System.getenv("KEY_PASSWORD")
                     ?: "AbdurRahman321@@"
 
-                val rawAlias = (project.findProperty("KEY_ALIAS") as? String)
+                val rawAlias = keyProperties.getProperty("keyAlias")
+                    ?: (project.findProperty("KEY_ALIAS") as? String)
                     ?: System.getenv("KEY_ALIAS")
                     ?: "maxai"
 
                 storePassword = rawStorePass
                 keyAlias = rawAlias
                 keyPassword = rawKeyPass
+                enableV1Signing = true
+                enableV2Signing = true
+                println("==> Configured release signing with keystore: ${keystoreFile.absolutePath}, alias: $rawAlias, V1/V2 enabled")
+            } else {
+                println("==> No release keystore file found! Fallback will be used.")
             }
         }
     }

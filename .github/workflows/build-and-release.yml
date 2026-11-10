@@ -41,9 +41,9 @@ jobs:
 
       - name: Setup Signing Keystore
         env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          SECRET_KEY_PASS: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD }}
-          SECRET_STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || secrets.KEY_PASSWORD }}
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 || secrets.KEYSTORE }}
+          SECRET_KEY_PASS: ${{ secrets.KEY_PASSWORD || secrets.KEYSTORE_PASSWORD || secrets.STORE_PASSWORD }}
+          SECRET_STORE_PASS: ${{ secrets.KEYSTORE_PASSWORD || secrets.STORE_PASSWORD || secrets.KEY_PASSWORD }}
           SECRET_KEY_ALIAS: ${{ secrets.KEY_ALIAS || secrets.KEY_NAME || secrets.ALIAS }}
         run: |
           mkdir -p android/app
@@ -51,17 +51,27 @@ jobs:
             echo "$KEYSTORE_BASE64" | tr -d '\r\n ' | base64 -d > android/app/release.jks
             cp android/app/release.jks android/release.jks
             echo "Keystore successfully decoded to android/app/release.jks"
-            echo "KEYSTORE_PASSWORD=${SECRET_STORE_PASS:-AbdurRahman321@@}" >> $GITHUB_ENV
-            echo "KEY_ALIAS=${SECRET_KEY_ALIAS:-maxai}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${SECRET_KEY_PASS:-AbdurRahman321@@}" >> $GITHUB_ENV
           else
-            echo "KEYSTORE_BASE64 is empty, creating signing keystore"
+            echo "KEYSTORE_BASE64 is empty, creating signing keystore fallback"
             keytool -genkeypair -v -keystore android/app/release.jks -alias maxai -keyalg RSA -keysize 2048 -validity 10000 -storepass AbdurRahman321@@ -keypass AbdurRahman321@@ -dname "CN=MaxAI, O=MaxAI, C=BD"
             cp android/app/release.jks android/release.jks
-            echo "KEYSTORE_PASSWORD=AbdurRahman321@@" >> $GITHUB_ENV
-            echo "KEY_ALIAS=maxai" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=AbdurRahman321@@" >> $GITHUB_ENV
           fi
+
+          STORE_PASS="${SECRET_STORE_PASS:-AbdurRahman321@@}"
+          KEY_PASS="${SECRET_KEY_PASS:-AbdurRahman321@@}"
+          KEY_AL="${SECRET_KEY_ALIAS:-maxai}"
+
+          cat <<EOF > android/app/key.properties
+          storePassword=$STORE_PASS
+          keyPassword=$KEY_PASS
+          keyAlias=$KEY_AL
+          storeFile=release.jks
+          EOF
+          cp android/app/key.properties android/key.properties
+
+          echo "KEYSTORE_PASSWORD=$STORE_PASS" >> $GITHUB_ENV
+          echo "KEY_ALIAS=$KEY_AL" >> $GITHUB_ENV
+          echo "KEY_PASSWORD=$KEY_PASS" >> $GITHUB_ENV
 
       - name: Flutter Pub Get
         run: flutter pub get
@@ -69,9 +79,18 @@ jobs:
       - name: Build Release APK
         env:
           GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError"
+          KEYSTORE_PASSWORD: ${{ env.KEYSTORE_PASSWORD }}
+          KEY_PASSWORD: ${{ env.KEY_PASSWORD }}
+          KEY_ALIAS: ${{ env.KEY_ALIAS }}
         run: |
           flutter build apk --release --build-name=${{ env.VERSION_NAME }} --build-number=${{ env.VERSION_CODE }}
           echo "APK_DIR=build/app/outputs/flutter-apk" >> $GITHUB_ENV
+
+      - name: Verify APK Signature
+        run: |
+          echo "=== Verifying APK Signature ==="
+          keytool -printcert -jarfile build/app/outputs/flutter-apk/app-release.apk || true
+          apksigner verify --verbose --print-certs build/app/outputs/flutter-apk/app-release.apk || true
 
       - name: Rename APK
         run: |
