@@ -140,4 +140,16 @@ class DiagnosticsLoggerService extends ChangeNotifier {
       }
     } catch (_) {}
   }
+
+  Future<String?> exportLogsToDownloads() async {
+    try {
+      final dump = await dumpFullLogs();
+      const path = '/storage/emulated/0/Download/max_ai_diagnostics.log';
+      final file = File(path);
+      await file.writeAsString(dump);
+      return file.path;
+    } catch (_) {
+      return null;
+    }
+  }
 }

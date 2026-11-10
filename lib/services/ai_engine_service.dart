@@ -27,6 +27,24 @@ class AIEngineService {
   static final AIEngineService instance = AIEngineService._internal();
   AIEngineService._internal();
 
+  Future<String> sendMessage({
+    required String prompt,
+    String? customSystemPrompt,
+  }) async {
+    final response = await generateResponse(
+      history: [
+        ChatMessage(
+          id: 'temp_${DateTime.now().millisecondsSinceEpoch}',
+          content: prompt,
+          role: MessageRole.user,
+          timestamp: DateTime.now(),
+        ),
+      ],
+      customSystemPrompt: customSystemPrompt,
+    );
+    return response.text;
+  }
+
   Future<AIEngineResponse> generateResponse({
     required List<ChatMessage> history,
     String? customSystemPrompt,
