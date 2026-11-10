@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'screens/main_shell.dart';
 import 'services/diagnostics_logger_service.dart';
 import 'services/hardware_telemetry_service.dart';
+import 'services/local_daemon_service.dart';
 import 'services/memory_service.dart';
 import 'services/settings_service.dart';
 import 'services/skill_registry_service.dart';
@@ -28,6 +29,7 @@ Future<void> main() async {
   await MemoryService.instance.init();
   await SkillRegistryService.instance.initialize();
   await VoiceService.instance.init();
+  await LocalDaemonService.instance.init();
   HardwareTelemetryService.instance.init();
 
   FlutterError.onError = (details) {

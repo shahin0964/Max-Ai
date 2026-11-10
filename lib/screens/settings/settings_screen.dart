@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import '../../services/local_daemon_service.dart';
 import '../../services/settings_service.dart';
 import '../../services/voice_service.dart';
 import '../../theme/app_theme.dart';
@@ -153,6 +155,161 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         labelStyle: TextStyle(fontSize: 12, color: AppTheme.textMuted),
                         prefixIcon: Icon(Icons.memory, size: 18, color: AppTheme.amber),
                       ),
+                    ),
+                    const SizedBox(height: 10),
+                    // In-App On-Device Local Daemon Controller
+                    ListenableBuilder(
+                      listenable: LocalDaemonService.instance,
+                      builder: (context, _) {
+                        final daemon = LocalDaemonService.instance;
+                        final isRunning = daemon.isRunning;
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                              color: isRunning
+                                  ? AppTheme.emerald.withValues(alpha: 0.4)
+                                  : AppTheme.amber.withValues(alpha: 0.3),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    isRunning ? Icons.check_circle : Icons.pause_circle_outline,
+                                    size: 16,
+                                    color: isRunning ? AppTheme.emerald : AppTheme.textMuted,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(
+                                      isRunning
+                                          ? 'On-Device Local AI Daemon: ACTIVE'
+                                          : 'On-Device Local AI Daemon: STOPPED',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: isRunning ? AppTheme.emerald : AppTheme.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                  TextButton(
+                                    onPressed: () async {
+                                      if (isRunning) {
+                                        await daemon.stopServer();
+                                      } else {
+                                        await daemon.startServer(port: 8000);
+                                      }
+                                    },
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                      minimumSize: Size.zero,
+                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                    ),
+                                    child: Text(
+                                      isRunning ? 'STOP' : 'START',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: isRunning ? Colors.redAccent : AppTheme.cyan,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Loopback: http://127.0.0.1:${daemon.port} • Model: ${daemon.activeModel}',
+                                style: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                              ),
+                              const SizedBox(height: 8),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 6,
+                                children: [
+                                  OutlinedButton.icon(
+                                    onPressed: () {
+                                      _localServerController.text = 'http://127.0.0.1:8000';
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        const SnackBar(
+                                          content: Text('Configured to on-device loopback (http://127.0.0.1:8000)'),
+                                          duration: Duration(seconds: 2),
+                                        ),
+                                      );
+                                    },
+                                    icon: const Icon(Icons.link, size: 12),
+                                    label: const Text('Use 127.0.0.1:8000', style: TextStyle(fontSize: 10)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.amber,
+                                      side: BorderSide(color: AppTheme.amber.withValues(alpha: 0.5)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      minimumSize: Size.zero,
+                                    ),
+                                  ),
+                                  OutlinedButton.icon(
+                                    onPressed: () async {
+                                      final url = _localServerController.text.trim();
+                                      if (url.isEmpty) return;
+                                      try {
+                                        final pingUri = Uri.parse(url.endsWith('/') ? '${url}health' : '$url/health');
+                                        final sw = Stopwatch()..start();
+                                        final res = await http.get(pingUri).timeout(const Duration(seconds: 3));
+                                        sw.stop();
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text(res.statusCode == 200
+                                                  ? '✓ Local Daemon Healthy! Latency: ${sw.elapsedMilliseconds}ms'
+                                                  : 'Response status: ${res.statusCode}'),
+                                              backgroundColor: res.statusCode == 200 ? AppTheme.emerald : Colors.red,
+                                              duration: const Duration(seconds: 2),
+                                            ),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(
+                                              content: Text('Connection failed: $e'),
+                                              backgroundColor: Colors.redAccent,
+                                              duration: const Duration(seconds: 3),
+                                            ),
+                                          );
+                                        }
+                                      }
+                                    },
+                                    icon: const Icon(Icons.speed, size: 12),
+                                    label: const Text('Test Ping', style: TextStyle(fontSize: 10)),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppTheme.cyan,
+                                      side: BorderSide(color: AppTheme.cyan.withValues(alpha: 0.5)),
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      minimumSize: Size.zero,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (daemon.isDownloading) ...[
+                                const SizedBox(height: 8),
+                                LinearProgressIndicator(
+                                  value: daemon.downloadProgress,
+                                  backgroundColor: Colors.white10,
+                                  valueColor: const AlwaysStoppedAnimation(AppTheme.cyan),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  daemon.downloadStatusText,
+                                  style: const TextStyle(fontSize: 10, color: AppTheme.cyan),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      },
                     ),
                   ],
                 ),

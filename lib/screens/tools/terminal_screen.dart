@@ -6,6 +6,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../services/ai_engine_service.dart';
 import '../../services/hardware_telemetry_service.dart';
+import '../../services/local_daemon_service.dart';
 import '../../services/skill_registry_service.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/glass_panel.dart';
@@ -66,6 +67,9 @@ class _TerminalScreenState extends State<TerminalScreen> {
   final Map<TerminalEnv, List<String>> _envQuickCommands = {
     TerminalEnv.ubuntu: [
       'neofetch',
+      'ai local status',
+      'ai local models',
+      'ai local start',
       'apt update',
       'apt install htop',
       'uname -a',
@@ -252,18 +256,193 @@ Max AI will architect complete executable bash scripts, diagnose errors, and exe
       return;
     }
 
-    // 2. AI Command Handler (in AI mode or if prefixed with 'ai ')
+    // 2. Local AI Daemon & Ollama Command Interceptor
+    if (cmd.toLowerCase().startsWith('ai local') ||
+        cmd.toLowerCase().startsWith('ollama') ||
+        cmd.toLowerCase().startsWith('openjarvis serve')) {
+      await _handleLocalDaemonCommand(cmd);
+      setState(() => _isRunning = false);
+      _scrollToBottom();
+      return;
+    }
+
+    // 3. AI Command Handler (in AI mode or if prefixed with 'ai ')
     if (_activeEnv == TerminalEnv.aiAgent || cmd.toLowerCase().startsWith('ai ')) {
       await _handleAiCommand(cmd.toLowerCase().startsWith('ai ') ? cmd.substring(3).trim() : cmd);
       return;
     }
 
-    // 3. Environment Specific Execution
+    // 4. Environment Specific Execution
     if (_activeEnv == TerminalEnv.ubuntu) {
       await _executeUbuntuCommand(cmd);
     } else {
       await _executeNativeAndroidCommand(cmd);
     }
+  }
+
+  Future<void> _handleLocalDaemonCommand(String rawCmd) async {
+    final daemon = LocalDaemonService.instance;
+    final cmd = rawCmd.trim();
+    final lower = cmd.toLowerCase();
+
+    if (lower == 'ai local status' || lower == 'ai local') {
+      final isRunning = daemon.isRunning;
+      final port = daemon.port;
+      final model = daemon.activeModel;
+      final telemetry = HardwareTelemetryService.instance.currentData;
+      final ramAvail = (telemetry.availRamMb / 1024).toStringAsFixed(1);
+      final ramTotal = (telemetry.totalRamMb / 1024).toStringAsFixed(1);
+
+      _logs.add(TerminalLogEntry(
+        type: 'stdout',
+        text: '''[OPENJARVIS LOCAL AI DAEMON]
+● Service Status: ${isRunning ? 'ACTIVE (RUNNING)' : 'STOPPED'}
+● Loopback URL  : http://127.0.0.1:$port
+● Active Model  : $model
+● Offline Engine: 100% On-Device Neural Microkernel
+● Hardware Info : $ramAvail GB Free / $ramTotal GB RAM (${telemetry.deviceModel})
+● Endpoints     :
+    - GET  http://127.0.0.1:$port/health
+    - GET  http://127.0.0.1:$port/v1/models (OpenAI format)
+    - POST http://127.0.0.1:$port/v1/chat/completions (OpenAI format)
+    - GET  http://127.0.0.1:$port/api/tags (Ollama format)
+    - POST http://127.0.0.1:$port/api/chat (Ollama format)
+
+Tip: Type 'ai local models' to view all offline models or 'ai local download <id>' to download.''',
+      ));
+      return;
+    }
+
+    if (lower == 'ai local models' || lower == 'ollama list') {
+      final buffer = StringBuffer();
+      buffer.writeln('[AVAILABLE LOCAL OFFLINE MODELS]');
+      buffer.writeln('ID                   SIZE     MIN RAM   STATUS');
+      buffer.writeln('------------------------------------------------------------');
+      for (final spec in LocalDaemonService.catalog) {
+        final isDownloaded = await daemon.isModelDownloaded(spec.id);
+        final isActive = spec.id == daemon.activeModel;
+        final status = isDownloaded
+            ? (isActive ? 'INSTALLED (ACTIVE)' : 'INSTALLED')
+            : 'AVAILABLE (Online Download)';
+        buffer.writeln('${spec.id.padRight(20)} ${spec.sizeLabel.padRight(8)} ${spec.ramLabel.padRight(9)} $status');
+      }
+      buffer.writeln('\nUse: ai local download <id> (e.g. ai local download qwen2.5:0.5b)');
+      buffer.writeln('Use: ai local switch <id>   (e.g. ai local switch llama3.2:1b)');
+      _logs.add(TerminalLogEntry(type: 'stdout', text: buffer.toString().trim()));
+      return;
+    }
+
+    if (lower == 'ai local start' || lower == 'openjarvis serve') {
+      if (daemon.isRunning) {
+        _logs.add(TerminalLogEntry(
+          type: 'stdout',
+          text: 'Local AI Daemon is already running on http://127.0.0.1:${daemon.port}',
+        ));
+      } else {
+        _logs.add(TerminalLogEntry(
+          type: 'stdout',
+          text: 'Starting OpenJarvis Local Daemon on 127.0.0.1:8000...',
+        ));
+        final started = await daemon.startServer(port: 8000);
+        _logs.add(TerminalLogEntry(
+          type: started ? 'stdout' : 'stderr',
+          text: started
+              ? '✓ Local AI Daemon successfully bound to http://127.0.0.1:8000\nEndpoints active for Max AI & Local Apps.'
+              : 'Failed to bind port 8000. It may already be in use.',
+        ));
+      }
+      return;
+    }
+
+    if (lower == 'ai local stop') {
+      await daemon.stopServer();
+      _logs.add(TerminalLogEntry(
+        type: 'stdout',
+        text: '✓ Local AI Daemon stopped. Port 8000 released.',
+      ));
+      return;
+    }
+
+    if (lower.startsWith('ai local switch ')) {
+      final targetId = cmd.substring('ai local switch '.length).trim();
+      final match = LocalDaemonService.catalog.any((s) => s.id == targetId);
+      if (match) {
+        daemon.setActiveModel(targetId);
+        _logs.add(TerminalLogEntry(
+          type: 'stdout',
+          text: '✓ Active local model switched to: $targetId',
+        ));
+      } else {
+        _logs.add(TerminalLogEntry(
+          type: 'stderr',
+          text: 'Model "$targetId" not found. Run "ai local models" to see the list.',
+        ));
+      }
+      return;
+    }
+
+    if (lower.startsWith('ai local download ') || lower.startsWith('ollama pull ')) {
+      final prefix = lower.startsWith('ai local download ') ? 'ai local download ' : 'ollama pull ';
+      final targetId = cmd.substring(prefix.length).trim();
+      LocalModelSpec? spec;
+      try {
+        spec = LocalDaemonService.catalog.firstWhere((s) => s.id == targetId);
+      } catch (_) {
+        spec = null;
+      }
+
+      if (spec == null) {
+        _logs.add(TerminalLogEntry(
+          type: 'stderr',
+          text: 'Unknown model "$targetId". Available: ${LocalDaemonService.catalog.map((e) => e.id).join(', ')}',
+        ));
+        return;
+      }
+
+      _logs.add(TerminalLogEntry(
+        type: 'stdout',
+        text: '''Initiating download: ${spec.name}
+File: ${spec.fileName} (${spec.sizeLabel})
+Source: HuggingFace GGUF
+Target: internal sandbox /data/user/0/com.termux/files/.../models/
+(APK remains lightweight ~60MB; model weights stored directly in app data)''',
+      ));
+      _scrollToBottom();
+
+      await daemon.downloadModel(
+        spec,
+        onProgress: (progress, status) {
+          if (mounted) {
+            if (_logs.isNotEmpty && _logs.last.text.startsWith('Downloading:')) {
+              _logs.last = TerminalLogEntry(type: 'stdout', text: 'Downloading: $status');
+            } else {
+              _logs.add(TerminalLogEntry(type: 'stdout', text: 'Downloading: $status'));
+            }
+            setState(() {});
+            _scrollToBottom();
+          }
+        },
+      );
+
+      _logs.add(TerminalLogEntry(
+        type: 'stdout',
+        text: '✓ ${spec.name} downloaded successfully! Active model set to ${spec.id}.',
+      ));
+      return;
+    }
+
+    // Default response for other ai local or ollama commands
+    _logs.add(TerminalLogEntry(
+      type: 'stderr',
+      text: '''Unrecognized local command: "$cmd"
+Supported commands:
+  ai local status       - Check local daemon status & IP
+  ai local models       - List on-device & downloadable models
+  ai local start        - Start local daemon on 127.0.0.1:8000
+  ai local stop         - Stop local daemon
+  ai local download <id>- Download GGUF model weights
+  ai local switch <id>  - Switch active local model''',
+    ));
   }
 
   Future<void> _handleAiCommand(String query) async {
@@ -634,6 +813,10 @@ Processing triggers for man-db ...
       type: 'stdout',
       text: '''Available Shell Commands & Features:
  - neofetch           : Display Ubuntu system specs & ASCII logo
+ - ai local status    : Inspect on-device Local AI daemon & loopback IP
+ - ai local models    : List offline models (Qwen 2.5 Coder, Llama 3.2)
+ - ai local download  : Download offline GGUF model weights
+ - ai local start/stop: Manage on-device loopback server (127.0.0.1:8000)
  - apt update         : Update Ubuntu package repositories
  - apt install <pkg>  : Install packages into the persistent sandbox
  - apt list           : View all installed packages
