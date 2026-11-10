@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../widgets/cyber_drawer.dart';
-import 'agent/agent_screen.dart';
 import 'chat/chat_screen.dart';
-import 'dashboard/dashboard_screen.dart';
-import 'memory/memory_screen.dart';
+import 'more/more_hub_screen.dart';
+import 'vision/jarvis_vision_screen.dart';
 import 'voice/voice_screen.dart';
 
 class MainShell extends StatefulWidget {
@@ -20,10 +19,9 @@ class _MainShellState extends State<MainShell> {
 
   final List<Widget> _screens = const [
     ChatScreen(),
-    AgentScreen(),
+    JarvisVisionScreen(),
     VoiceScreen(),
-    MemoryScreen(),
-    DashboardScreen(),
+    MoreHubScreen(),
   ];
 
   @override
@@ -67,24 +65,19 @@ class _MainShellState extends State<MainShell> {
               label: 'Chat',
             ),
             NavigationDestination(
-              icon: Icon(Icons.hub_outlined, color: AppTheme.textMuted),
-              selectedIcon: Icon(Icons.hub, color: AppTheme.amber),
-              label: 'Agent',
+              icon: Icon(Icons.center_focus_strong_outlined, color: AppTheme.textMuted),
+              selectedIcon: Icon(Icons.center_focus_strong, color: AppTheme.emerald),
+              label: 'Vision',
             ),
             NavigationDestination(
               icon: Icon(Icons.graphic_eq, color: AppTheme.textMuted),
-              selectedIcon: Icon(Icons.graphic_eq, color: AppTheme.emerald),
+              selectedIcon: Icon(Icons.graphic_eq, color: AppTheme.violet),
               label: 'Voice',
             ),
             NavigationDestination(
-              icon: Icon(Icons.psychology_outlined, color: AppTheme.textMuted),
-              selectedIcon: Icon(Icons.psychology, color: AppTheme.violet),
-              label: 'Memory',
-            ),
-            NavigationDestination(
-              icon: Icon(Icons.speed, color: AppTheme.textMuted),
-              selectedIcon: Icon(Icons.speed, color: AppTheme.cyan),
-              label: 'Telemetry',
+              icon: Icon(Icons.grid_view_outlined, color: AppTheme.textMuted),
+              selectedIcon: Icon(Icons.grid_view, color: AppTheme.amber),
+              label: 'More',
             ),
           ],
         ),

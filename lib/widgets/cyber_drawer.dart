@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import '../screens/agent/agent_screen.dart';
+import '../screens/dashboard/dashboard_screen.dart';
+import '../screens/memory/memory_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../services/ai_engine_service.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
-import '../screens/settings/settings_screen.dart';
 import 'glass_panel.dart';
 import 'model_selector_sheet.dart';
 
@@ -156,11 +159,11 @@ class CyberDrawer extends StatelessWidget {
                     context: context,
                   ),
                   _buildNavItem(
-                    icon: Icons.hub_outlined,
-                    activeIcon: Icons.hub,
-                    label: 'Autonomous Agent Hub',
+                    icon: Icons.center_focus_strong_outlined,
+                    activeIcon: Icons.center_focus_strong,
+                    label: 'Jarvis Vision',
                     index: 1,
-                    color: AppTheme.amber,
+                    color: AppTheme.emerald,
                     context: context,
                   ),
                   _buildNavItem(
@@ -168,24 +171,71 @@ class CyberDrawer extends StatelessWidget {
                     activeIcon: Icons.graphic_eq,
                     label: 'Holographic Voice',
                     index: 2,
-                    color: AppTheme.emerald,
-                    context: context,
-                  ),
-                  _buildNavItem(
-                    icon: Icons.psychology_outlined,
-                    activeIcon: Icons.psychology,
-                    label: 'OpenJarvis Memory Stack',
-                    index: 3,
                     color: AppTheme.violet,
                     context: context,
                   ),
                   _buildNavItem(
-                    icon: Icons.bug_report_outlined,
-                    activeIcon: Icons.bug_report,
-                    label: 'Telemetry & Bug Monitor',
-                    index: 4,
+                    icon: Icons.grid_view_outlined,
+                    activeIcon: Icons.grid_view,
+                    label: 'More Cockpit Hub',
+                    index: 3,
                     color: AppTheme.amber,
                     context: context,
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Divider(),
+                  ),
+
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    child: Text(
+                      'SPECIALIZED MODULES',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: AppTheme.textMuted,
+                      ),
+                    ),
+                  ),
+
+                  _buildModuleItem(
+                    icon: Icons.hub,
+                    label: 'Autonomous Agent Hub',
+                    color: AppTheme.amber,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AgentScreen()),
+                      );
+                    },
+                  ),
+                  _buildModuleItem(
+                    icon: Icons.psychology,
+                    label: 'OpenJarvis Memory Stack',
+                    color: AppTheme.violet,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const MemoryScreen()),
+                      );
+                    },
+                  ),
+                  _buildModuleItem(
+                    icon: Icons.speed,
+                    label: 'Telemetry & Bug Monitor',
+                    color: AppTheme.cyan,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+                      );
+                    },
                   ),
 
                   const Padding(
@@ -398,6 +448,32 @@ class CyberDrawer extends StatelessWidget {
           Navigator.pop(context); // Close Drawer
           onSelectTab(index);
         },
+      ),
+    );
+  }
+
+  Widget _buildModuleItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: ListTile(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        tileColor: Colors.transparent,
+        leading: Icon(icon, color: color, size: 20),
+        title: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppTheme.textPrimary,
+          ),
+        ),
+        trailing: Icon(Icons.arrow_forward_ios, size: 12, color: color.withValues(alpha: 0.6)),
+        onTap: onTap,
       ),
     );
   }

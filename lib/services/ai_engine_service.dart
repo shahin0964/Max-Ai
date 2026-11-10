@@ -123,6 +123,133 @@ class AIEngineService {
     }
   }
 
+  // Multimodal Visual Intelligence Scanner (Jarvis Vision)
+  Future<String> analyzeImage({
+    required List<int> imageBytes,
+    required String mimeType,
+    required String prompt,
+  }) async {
+    final settings = SettingsService.instance;
+    final apiKey = settings.geminiApiKey;
+    if (apiKey.isEmpty) {
+      throw 'Gemini API key is not configured. Please set it in Settings.';
+    }
+
+    final base64Image = base64Encode(imageBytes);
+    final model = 'gemini-3.8-flash';
+
+    DiagnosticsLoggerService.instance.logInfo(
+      'VISION_SCAN',
+      'Sending visual payload (${(imageBytes.length / 1024).toStringAsFixed(1)} KB) to $model',
+    );
+
+    // 1. Try generateContent with inline_data
+    final url = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey');
+
+    final payload = {
+      'contents': [
+        {
+          'parts': [
+            {
+              'inline_data': {
+                'mime_type': mimeType,
+                'data': base64Image,
+              }
+            },
+            {'text': prompt}
+          ]
+        }
+      ],
+      'generationConfig': {
+        'temperature': 0.4,
+        'maxOutputTokens': 2048,
+      }
+    };
+
+    http.Response? response;
+    try {
+      response = await http.post(
+        url,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(payload),
+      ).timeout(const Duration(seconds: 40));
+
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final candidates = json['candidates'] as List<dynamic>?;
+        if (candidates != null && candidates.isNotEmpty) {
+          final content = candidates.first['content'] as Map<String, dynamic>?;
+          final parts = content?['parts'] as List<dynamic>?;
+          if (parts != null && parts.isNotEmpty) {
+            DiagnosticsLoggerService.instance.logSuccess(
+              'VISION_RESOLVED',
+              'Vision analysis successfully produced response',
+            );
+            return parts.first['text'] as String? ?? 'No analysis generated.';
+          }
+        }
+      }
+    } catch (_) {}
+
+    // 2. Try Interactions API fallback
+    try {
+      final interactionUrl = Uri.parse(
+          'https://generativelanguage.googleapis.com/v1beta/interactions?key=$apiKey');
+
+      final interactionPayload = {
+        'model': model,
+        'input': [
+          {
+            'type': 'image',
+            'data': base64Image,
+            'mime_type': mimeType,
+          },
+          {
+            'type': 'text',
+            'text': prompt,
+          }
+        ]
+      };
+
+      final intResponse = await http.post(
+        interactionUrl,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode(interactionPayload),
+      ).timeout(const Duration(seconds: 40));
+
+      if (intResponse.statusCode == 200) {
+        final intJson = jsonDecode(intResponse.body) as Map<String, dynamic>;
+        if (intJson.containsKey('output_text') && intJson['output_text'] != null) {
+          return intJson['output_text'] as String;
+        }
+        final steps = intJson['steps'] as List<dynamic>?;
+        if (steps != null) {
+          for (final s in steps.reversed) {
+            if (s['type'] == 'model_output' || s['type'] == 'agent_output') {
+              final content = s['content'] as List<dynamic>?;
+              if (content != null && content.isNotEmpty) {
+                for (final c in content) {
+                  if (c is Map<String, dynamic> && c['text'] != null) {
+                    return c['text'] as String;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    } catch (_) {}
+
+    final errBody = response != null ? response.body : 'Request timed out or failed';
+    final errCode = response != null ? response.statusCode : 500;
+    DiagnosticsLoggerService.instance.logError(
+      'VISION_ERROR',
+      'Failed to analyze: HTTP $errCode: $errBody',
+    );
+    throw 'Vision Analysis Error ($errCode): $errBody';
+  }
+
   // 1. Google Gemini Smart Auto-Failover Engine
   Future<({String replyText, String activeModel})> _callGeminiWithFailover(
     String requestedModel,
