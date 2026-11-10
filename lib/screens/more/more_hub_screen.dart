@@ -12,13 +12,7 @@ import '../memory/memory_screen.dart';
 import '../settings/assistant_persona_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/subagents_screen.dart';
-import '../tools/browser_screen.dart';
-import '../tools/coding_studio_screen.dart';
-import '../tools/documents_screen.dart';
-import '../tools/marketing_screen.dart';
-import '../tools/markets_screen.dart';
 import '../tools/skills_store_screen.dart';
-import '../tools/terminal_screen.dart';
 
 class MoreHubScreen extends StatelessWidget {
   const MoreHubScreen({super.key});
@@ -106,77 +100,7 @@ class MoreHubScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 2. WORKSPACE & PRODUCTION TOOLS (KAAM-KAAJ)
-            _buildCategoryHeader('WORKSPACE & PRODUCTION TOOLS', AppTheme.cyan),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.trending_up,
-              iconColor: AppTheme.emerald,
-              title: 'Markets & Financial Intelligence',
-              subtitle: 'Live crypto, tech stock metrics & macro sentiment analysis',
-              badge: 'MARKETS',
-              badgeColor: AppTheme.emerald,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketsScreen())),
-            ),
-            const SizedBox(height: 8),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.campaign_outlined,
-              iconColor: AppTheme.amber,
-              title: 'Marketing & Content Studio',
-              subtitle: 'Viral Instagram reels, YouTube titles, ad copy & hashtags',
-              badge: 'STUDIO',
-              badgeColor: AppTheme.amber,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MarketingScreen())),
-            ),
-            const SizedBox(height: 8),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.description_outlined,
-              iconColor: AppTheme.cyan,
-              title: 'Documents & Knowledge Hub',
-              subtitle: 'Summarize documents, contracts, PDFs & extract action items',
-              badge: 'DOCS',
-              badgeColor: AppTheme.cyan,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const DocumentsScreen())),
-            ),
-            const SizedBox(height: 8),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.code,
-              iconColor: AppTheme.violet,
-              title: 'Website & Coding Studio',
-              subtitle: 'Architect Flutter apps, Python APIs, HTML websites & debug syntax',
-              badge: 'CODING',
-              badgeColor: AppTheme.violet,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CodingStudioScreen())),
-            ),
-            const SizedBox(height: 8),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.terminal,
-              iconColor: AppTheme.cyan,
-              title: 'Terminal & Shell Runner',
-              subtitle: 'Local Android bash console, system diagnostics & shell commands',
-              badge: 'TERMINAL',
-              badgeColor: AppTheme.cyan,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalScreen())),
-            ),
-            const SizedBox(height: 8),
-            _buildModuleCard(
-              context: context,
-              icon: Icons.travel_explore,
-              iconColor: AppTheme.emerald,
-              title: 'Autonomous AI Browser',
-              subtitle: 'Live web scraping, real-time research agent & page summarizer',
-              badge: 'BROWSER',
-              badgeColor: AppTheme.emerald,
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const BrowserScreen())),
-            ),
-
-            const SizedBox(height: 20),
-
-            // 3. PERSONALIZATION & INTEGRATIONS
+            // 2. PERSONALIZATION & INTEGRATIONS
             _buildCategoryHeader('PERSONALIZATION & INTEGRATIONS', AppTheme.emerald),
             _buildModuleCard(
               context: context,
@@ -213,7 +137,7 @@ class MoreHubScreen extends StatelessWidget {
 
             const SizedBox(height: 20),
 
-            // 4. MEMORY, DATA & SYSTEM
+            // 3. MEMORY, DATA & SYSTEM
             _buildCategoryHeader('MEMORY, DATA & SYSTEM', AppTheme.violet),
             _buildModuleCard(
               context: context,
