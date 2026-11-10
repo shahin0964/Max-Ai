@@ -67,6 +67,8 @@ jobs:
         run: flutter pub get
 
       - name: Build Release APK
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx6G -XX:MaxMetaspaceSize=2G -XX:+HeapDumpOnOutOfMemoryError"
         run: |
           flutter build apk --release --build-name=${{ env.VERSION_NAME }} --build-number=${{ env.VERSION_CODE }}
           echo "APK_DIR=build/app/outputs/flutter-apk" >> $GITHUB_ENV
