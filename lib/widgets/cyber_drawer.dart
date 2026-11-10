@@ -171,6 +171,19 @@ class CyberDrawer extends StatelessWidget {
                           height: 1.4,
                         ),
                       ),
+                      const SizedBox(height: 14),
+                      OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          onSelectTab(3);
+                        },
+                        icon: const Icon(Icons.grid_view, color: AppTheme.amber, size: 16),
+                        label: const Text('OPEN COCKPIT HUB', style: TextStyle(color: AppTheme.amber, fontWeight: FontWeight.bold, fontSize: 11)),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: AppTheme.amber, width: 0.8),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        ),
+                      ),
                     ],
                   ),
                 ),
