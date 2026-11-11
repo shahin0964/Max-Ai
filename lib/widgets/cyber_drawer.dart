@@ -5,6 +5,7 @@ import '../screens/tools/documents_screen.dart';
 import '../screens/tools/marketing_screen.dart';
 import '../screens/tools/markets_screen.dart';
 import '../screens/tools/terminal_screen.dart';
+import '../screens/update/update_screen.dart';
 import '../services/settings_service.dart';
 import '../theme/app_theme.dart';
 import 'glass_panel.dart';
@@ -250,6 +251,21 @@ class CyberDrawer extends StatelessWidget {
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const BrowserScreen()));
+                    },
+                  ),
+                  const SizedBox(height: 8),
+
+                  _buildToolTile(
+                    context: context,
+                    icon: Icons.system_update_rounded,
+                    iconColor: AppTheme.amber,
+                    title: 'System & App Updates',
+                    subtitle: 'Check latest GitHub releases, download APK & install auto-updates',
+                    badge: 'UPDATE',
+                    badgeColor: AppTheme.amber,
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const UpdateScreen()));
                     },
                   ),
                   const SizedBox(height: 12),

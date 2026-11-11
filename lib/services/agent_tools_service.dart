@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'hardware_telemetry_service.dart';
 import 'memory_service.dart';
 import 'settings_service.dart';
+import 'update_service.dart';
 
 class AgentToolsService {
   static final AgentToolsService instance = AgentToolsService._internal();
@@ -21,6 +22,8 @@ Available Tools:
 7. market_quote(symbol: string): Fetch real-time live ticker price (e.g. BTC, ETH, SOL, BNB, XRP) from Binance public feed.
 8. browse_url(url: string): Fetch and scrape live webpage content from a given HTTP/HTTPS URL.
 9. email_dispatch(to: string, subject: string, body: string): Send an email via the user's configured SMTP account.
+10. check_app_update(): Check if a new version/APK of the Max AI application is available on GitHub releases.
+11. install_app_update(): Autonomously download the latest APK release and trigger the native Android package installer.
 ''';
 
   Future<String> executeTool(String toolName, String input) async {
@@ -44,6 +47,10 @@ Available Tools:
         return await _browseUrl(input);
       } else if (lowerName == 'email_dispatch') {
         return await _dispatchEmail(input);
+      } else if (lowerName == 'check_app_update') {
+        return await _checkAppUpdate();
+      } else if (lowerName == 'install_app_update') {
+        return await _installAppUpdate();
       } else {
         return 'Error: Unknown tool "$toolName"';
       }
@@ -279,6 +286,26 @@ Available Tools:
     } catch (e) {
       return 'Failed to reach SMTP server (${s.smtpHost}:${s.smtpPort}): $e';
     }
+  }
+
+  Future<String> _checkAppUpdate() async {
+    final update = await UpdateService.instance.checkForUpdates();
+    if (update == null) {
+      return 'Could not check for updates. GitHub releases could not be reached.';
+    }
+    if (!update.hasUpdate) {
+      return 'Max AI is running the latest version (${UpdateService.instance.currentVersion}). No update required.';
+    }
+    final notes = update.releaseNotes.length > 300
+        ? '${update.releaseNotes.substring(0, 300)}...'
+        : update.releaseNotes;
+    return 'Update Available: ${update.tagName} (Current: ${UpdateService.instance.currentVersion})\n'
+        'APK Size: ${update.sizeFormatted}\n'
+        'Release Notes:\n$notes';
+  }
+
+  Future<String> _installAppUpdate() async {
+    return await UpdateService.instance.autonomousCheckAndAutoUpdate();
   }
 }
 

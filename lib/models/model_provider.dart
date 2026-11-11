@@ -46,12 +46,6 @@ class AIModelInfo {
       description: 'Foundational multi-step execution model',
     ),
     AIModelInfo(
-      id: 'gemini-2.5-flash',
-      name: 'Gemini 2.5 Flash',
-      provider: AIProvider.gemini,
-      description: '1M token hybrid reasoning model',
-    ),
-    AIModelInfo(
       id: 'gemini-3.1-pro-preview',
       name: 'Gemini 3.1 Pro',
       provider: AIProvider.gemini,
