@@ -45,7 +45,6 @@ class UpdateService extends ChangeNotifier {
   static const MethodChannel _systemChannel = MethodChannel('com.max.ai/system');
 
   String get appVersion => currentVersion;
-  String get currentVersion => UpdateService.currentVersion;
 
   bool _isChecking = false;
   bool _isDownloading = false;

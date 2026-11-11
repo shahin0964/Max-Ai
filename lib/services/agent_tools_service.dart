@@ -294,12 +294,12 @@ Available Tools:
       return 'Could not check for updates. GitHub releases could not be reached.';
     }
     if (!update.hasUpdate) {
-      return 'Max AI is running the latest version (${UpdateService.instance.currentVersion}). No update required.';
+      return 'Max AI is running the latest version (${UpdateService.currentVersion}). No update required.';
     }
     final notes = update.releaseNotes.length > 300
         ? '${update.releaseNotes.substring(0, 300)}...'
         : update.releaseNotes;
-    return 'Update Available: ${update.tagName} (Current: ${UpdateService.instance.currentVersion})\n'
+    return 'Update Available: ${update.tagName} (Current: ${UpdateService.currentVersion})\n'
         'APK Size: ${update.sizeFormatted}\n'
         'Release Notes:\n$notes';
   }
