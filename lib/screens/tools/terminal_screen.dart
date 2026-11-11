@@ -315,19 +315,23 @@ Tip: Type 'ai local models' to view all offline models or 'ai local download <id
 
     if (lower == 'ai local models' || lower == 'ollama list') {
       final buffer = StringBuffer();
-      buffer.writeln('[AVAILABLE LOCAL OFFLINE MODELS]');
-      buffer.writeln('ID                   SIZE     MIN RAM   STATUS');
-      buffer.writeln('------------------------------------------------------------');
+      buffer.writeln('[OFFLINE LOCAL MODELS CATALOG]');
+      buffer.writeln('----------------------------------------');
       for (final spec in LocalDaemonService.catalog) {
         final isDownloaded = await daemon.isModelDownloaded(spec.id);
         final isActive = spec.id == daemon.activeModel;
-        final status = isDownloaded
-            ? (isActive ? 'INSTALLED (ACTIVE)' : 'INSTALLED')
-            : 'AVAILABLE (Online Download)';
-        buffer.writeln('${spec.id.padRight(20)} ${spec.sizeLabel.padRight(8)} ${spec.ramLabel.padRight(9)} $status');
+        final icon = isActive ? '🟢' : (isDownloaded ? '🔵' : '⚪');
+        final tag = isActive
+            ? 'ACTIVE'
+            : (isDownloaded ? 'DOWNLOADED' : 'ONLINE DOWNLOAD');
+        buffer.writeln('$icon ${spec.id} [$tag]');
+        buffer.writeln('   • Name: ${spec.name}');
+        buffer.writeln('   • Size: ${spec.sizeLabel} | Min RAM: ${spec.ramLabel}');
+        buffer.writeln('');
       }
-      buffer.writeln('\nUse: ai local download <id> (e.g. ai local download qwen2.5:0.5b)');
-      buffer.writeln('Use: ai local switch <id>   (e.g. ai local switch llama3.2:1b)');
+      buffer.writeln('Quick Commands:');
+      buffer.writeln('  ai local download <id>  (e.g. ai local download qwen2.5:0.5b)');
+      buffer.writeln('  ai local switch <id>    (e.g. ai local switch llama3.2:1b)');
       _logs.add(TerminalLogEntry(type: 'stdout', text: buffer.toString().trim()));
       return;
     }
@@ -830,14 +834,20 @@ Processing triggers for man-db ...
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    void doScroll() {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 200),
+          duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
         );
       }
+    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      doScroll();
+      Future.delayed(const Duration(milliseconds: 100), doScroll);
+      Future.delayed(const Duration(milliseconds: 250), doScroll);
     });
   }
 
