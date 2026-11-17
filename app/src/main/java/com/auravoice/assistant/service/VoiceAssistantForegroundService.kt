@@ -113,9 +113,9 @@ class VoiceAssistantForegroundService : Service() {
             }
             llamaEngine = LlamaEngine(this, memoryManager)
 
-            wakeWordDetector = WakeWordDetector {
-                AppLogger.i(tag, "Wake word trigger activated")
-                onWakeWordTriggered()
+            wakeWordDetector = WakeWordDetector(this) { triggeredWord ->
+                AppLogger.i(tag, "Wake word trigger activated: $triggeredWord")
+                onWakeWordTriggered(triggeredWord)
             }
 
             ttsEngine = TextToSpeechEngine(
@@ -138,11 +138,19 @@ class VoiceAssistantForegroundService : Service() {
                 onPartialResultCallback = { partial ->
                     AppLogger.d(tag, "STT partial: $partial")
                     _currentTranscript.value = partial
+
+                    // Live wake-word interception
+                    if (_currentState.value == AssistantState.IDLE) {
+                        wakeWordDetector?.checkWakeWord(partial)
+                    }
                 },
                 onFinalResultCallback = { finalQuery ->
                     AppLogger.i(tag, "STT final: $finalQuery")
                     _currentTranscript.value = finalQuery
-                    processUserQuery(finalQuery)
+
+                    // Strip any leading wake word e.g. "Hey Jarvis, ইউটিউব খোলো" -> "ইউটিউব খোলো"
+                    val cleanQuery = wakeWordDetector?.stripWakeWord(finalQuery) ?: finalQuery
+                    processUserQuery(cleanQuery)
                 },
                 onErrorCallback = { errorCode ->
                     AppLogger.w(tag, "STT reported error: $errorCode")
@@ -176,10 +184,15 @@ class VoiceAssistantForegroundService : Service() {
         }
     }
 
-    private fun onWakeWordTriggered() {
+    private fun onWakeWordTriggered(triggeredWord: String) {
         _currentState.value = AssistantState.LISTENING
-        ttsEngine?.speak("বলুন, শুনছি...")
+        val identity = com.auravoice.assistant.audio.AssistantIdentityManager(this).getIdentity()
+        val salutation = if (identity.userCallsign.isNotBlank()) "${identity.userCallsign}, " else ""
+        ttsEngine?.speak("${salutation}বলুন, শুনছি...")
     }
+
+    fun getIdentityManager(): com.auravoice.assistant.audio.AssistantIdentityManager =
+        com.auravoice.assistant.audio.AssistantIdentityManager(this)
 
     fun setVoicePersona(persona: com.auravoice.assistant.audio.VoicePersona) {
         ttsEngine?.setPersona(persona)

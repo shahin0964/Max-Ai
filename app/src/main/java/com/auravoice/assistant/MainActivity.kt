@@ -253,7 +253,8 @@ class MainActivity : ComponentActivity() {
                                         onPersonaChange = { newPersona ->
                                             currentPersona = newPersona
                                             assistantService?.setVoicePersona(newPersona)
-                                        }
+                                        },
+                                        identityManager = assistantService?.getIdentityManager()
                                     )
                                 }
                             }

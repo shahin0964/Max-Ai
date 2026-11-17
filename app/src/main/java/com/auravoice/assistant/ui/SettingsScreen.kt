@@ -8,6 +8,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Badge
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.RecordVoiceOver
@@ -24,15 +26,23 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.auravoice.assistant.audio.AssistantIdentityManager
 import com.auravoice.assistant.audio.VoicePersona
 import com.auravoice.assistant.ui.theme.*
 
 @Composable
 fun SettingsScreen(
     currentPersona: VoicePersona = VoicePersona.JARVIS,
-    onPersonaChange: (VoicePersona) -> Unit = {}
+    onPersonaChange: (VoicePersona) -> Unit = {},
+    identityManager: AssistantIdentityManager? = null
 ) {
     val scrollState = rememberScrollState()
+
+    val currentIdentity = remember { identityManager?.getIdentity() }
+    var assistantName by remember { mutableStateOf(currentIdentity?.assistantName ?: "Aura") }
+    var wakeWord by remember { mutableStateOf(currentIdentity?.primaryWakeWord ?: "Hey Aura") }
+    var userCallsign by remember { mutableStateOf(currentIdentity?.userCallsign ?: "স্যার") }
+    var isSaved by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
@@ -42,20 +52,171 @@ fun SettingsScreen(
             .verticalScroll(scrollState)
     ) {
         Text(
-            text = "Settings & Hardware",
+            text = "Settings & Identity",
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
         Text(
-            text = "Offline Model, Voice & Engine Configuration",
+            text = "অ্যাসিস্ট্যান্টের নাম, ওয়েক-ওয়ার্ড ও ব্রেন কাস্টমাইজেশন",
             style = MaterialTheme.typography.bodyMedium,
             color = TextSecondary
         )
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        // 1. Voice Persona & Synthesis Locking Card
+        // 1. Assistant Identity & Custom Wake Word Customization Card
+        SettingsSectionCard(
+            title = "অ্যাসিস্ট্যান্ট নাম ও ওয়েক-ওয়ার্ড (Wake Word)",
+            icon = Icons.Default.Badge,
+            subtitle = "নিজের পছন্দমতো নাম ও ওয়েক-ওয়ার্ড সেট করুন"
+        ) {
+            Text(
+                text = "আপনি যেকোনো নাম (যেমন জার্ভিস, ম্যাক্স, অরা) ও ওয়েক-ওয়ার্ড দিতে পারেন। অরা সাথে সাথে সেই নামে সাড়া দেবে:",
+                color = TextSecondary,
+                fontSize = 12.sp,
+                lineHeight = 18.sp
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Preset Quick Selection Chips
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                FilterChip(
+                    selected = assistantName == "Jarvis",
+                    onClick = {
+                        assistantName = "Jarvis"
+                        wakeWord = "Hey Jarvis"
+                        onPersonaChange(VoicePersona.JARVIS)
+                        isSaved = false
+                    },
+                    label = { Text("Jarvis (জার্ভিস)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NeonCyan.copy(alpha = 0.2f))
+                )
+                FilterChip(
+                    selected = assistantName == "Aura",
+                    onClick = {
+                        assistantName = "Aura"
+                        wakeWord = "Hey Aura"
+                        onPersonaChange(VoicePersona.AURA)
+                        isSaved = false
+                    },
+                    label = { Text("Aura (অরা)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NeonPink.copy(alpha = 0.2f))
+                )
+                FilterChip(
+                    selected = assistantName == "Max",
+                    onClick = {
+                        assistantName = "Max"
+                        wakeWord = "Hey Max"
+                        onPersonaChange(VoicePersona.JARVIS)
+                        isSaved = false
+                    },
+                    label = { Text("Max (ম্যাক্স)", fontSize = 11.sp) },
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = NeonCyan.copy(alpha = 0.2f))
+                )
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            // Field 1: Assistant Name
+            OutlinedTextField(
+                value = assistantName,
+                onValueChange = {
+                    assistantName = it
+                    isSaved = false
+                },
+                label = { Text("অ্যাসিস্ট্যান্টের নাম (Assistant Name)", fontSize = 12.sp) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = NeonCyan,
+                    unfocusedBorderColor = Color(0xFF262A40),
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Field 2: Custom Wake Word
+            OutlinedTextField(
+                value = wakeWord,
+                onValueChange = {
+                    wakeWord = it
+                    isSaved = false
+                },
+                label = { Text("কাস্টম ওয়েক-ওয়ার্ড (Custom Wake Word)", fontSize = 12.sp) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = NeonCyan,
+                    unfocusedBorderColor = Color(0xFF262A40),
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Field 3: User Callsign
+            OutlinedTextField(
+                value = userCallsign,
+                onValueChange = {
+                    userCallsign = it
+                    isSaved = false
+                },
+                label = { Text("আপনাকে ডাকার সম্বোধন (User Callsign / Name)", fontSize = 12.sp) },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = NeonCyan,
+                    unfocusedBorderColor = Color(0xFF262A40),
+                    focusedTextColor = TextPrimary,
+                    unfocusedTextColor = TextPrimary
+                )
+            )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (isSaved) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Check, contentDescription = "Saved", tint = NeonGreen, modifier = Modifier.size(16.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("নাম ও ওয়েক-ওয়ার্ড সেভ হয়েছে!", color = NeonGreen, fontSize = 12.sp)
+                    }
+                } else {
+                    Spacer(modifier = Modifier.width(1.dp))
+                }
+
+                Button(
+                    onClick = {
+                        identityManager?.updateIdentity(
+                            name = assistantName,
+                            wakeWord = wakeWord,
+                            userCallsign = userCallsign
+                        )
+                        isSaved = true
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = NeonCyan, contentColor = DarkBackground),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("সেভ করুন (Save)", fontWeight = FontWeight.Bold)
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 2. Voice Persona Locking Card
         SettingsSectionCard(
             title = "কন্ঠ ও পার্সোনালিটি নির্বাচন (Voice Lock)",
             icon = Icons.Default.RecordVoiceOver,
@@ -158,7 +319,20 @@ fun SettingsScreen(
 
         Spacer(modifier = Modifier.height(12.dp))
 
-        // 2. Device Specs
+        // 3. Autonomous Web Intelligence Card
+        SettingsSectionCard(
+            title = "অটোনোমাস ওয়েব ইন্টেলিজেন্স (Web Research)",
+            icon = Icons.Default.Info,
+            subtitle = "অনলাইনে লাইভ অনুসন্ধান ও অটো-মেমোরি সংরক্ষণ"
+        ) {
+            SettingRow(label = "লাইভ ইন্টারনেট সার্চ", value = "সক্রিয় (Wikipedia + DDG)")
+            SettingRow(label = "অটো-মেমোরি সেভ", value = "সক্রিয় (অফলাইনেও মনে রাখবে)")
+            SettingRow(label = "অফলাইন অ্যালার্ট", value = "ইন্টারনেট না থাকলে সাথে সাথে জানাবে")
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // 4. Device Specs
         SettingsSectionCard(
             title = "Device Specs & Compute",
             icon = Icons.Default.Memory,
@@ -168,35 +342,6 @@ fun SettingsScreen(
             SettingRow(label = "RAM Capacity", value = "12 GB LPDDR5X")
             SettingRow(label = "Storage", value = "256 GB UFS 4.0")
             SettingRow(label = "LLM Engine", value = "Cognitive Intent + llama.cpp")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 3. AI Brain
-        SettingsSectionCard(
-            title = "AI Brain (Model Details)",
-            icon = Icons.Default.Info,
-            subtitle = "100% Offline Local Inference"
-        ) {
-            SettingRow(label = "Cognitive Training", value = "Bengali & English Multi-Domain Intent Engine")
-            SettingRow(label = "Default Model", value = "Qwen 2.5 3B / Llama 3.2 3B (GGUF)")
-            SettingRow(label = "Quantization", value = "Q4_K_M (4-bit)")
-            SettingRow(label = "Context Window", value = "4096 tokens")
-            SettingRow(label = "API Keys", value = "None (Zero cloud dependancy)")
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // 4. Voice & Wake Word
-        SettingsSectionCard(
-            title = "Voice & Wake Word",
-            icon = Icons.Default.VolumeUp,
-            subtitle = "Speech Recognition & Synthesis"
-        ) {
-            SettingRow(label = "Wake Word", value = "\"Hey Aura\" / \"অরা\"")
-            SettingRow(label = "STT Languages", value = "Bengali (bn-BD) & English")
-            SettingRow(label = "Active Persona", value = currentPersona.displayName)
-            SettingRow(label = "Pause Tolerance", value = "4.5 seconds (Unclipped sentences)")
         }
 
         Spacer(modifier = Modifier.height(12.dp))
