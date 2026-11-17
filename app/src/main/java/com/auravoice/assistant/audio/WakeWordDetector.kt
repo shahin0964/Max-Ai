@@ -12,7 +12,7 @@ class WakeWordDetector(
 ) {
     private val tag = "WakeWordDetector"
     private val wakeWords = listOf(
-        "hey aura", "aura", "ora", "অরা", "শোনো", "হেই অরা", "শুনছো"
+        "hey max", "max", "ম্যাক্স", "হেই ম্যাক্স", "hey aura", "aura", "ora", "অরা", "শোনো", "হেই অরা", "শুনছো"
     )
 
     /**

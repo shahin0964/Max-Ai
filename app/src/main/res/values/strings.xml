@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Aura AI</string>
-    <string name="channel_name">Aura Assistant Service</string>
-    <string name="channel_description">Active background listening for Aura Voice AI</string>
-    <string name="notification_title">Aura Voice AI is Active</string>
-    <string name="notification_listening">Listening for "Hey Aura" / "অরা"...</string>
-    <string name="notification_thinking">Aura is thinking...</string>
-    <string name="notification_speaking">Aura is speaking...</string>
+    <string name="app_name">Max AI</string>
+    <string name="channel_name">Max AI Assistant Service</string>
+    <string name="channel_description">Active background listening for Max AI Voice Assistant</string>
+    <string name="notification_title">Max AI is Active</string>
+    <string name="notification_listening">Listening for "Hey Max" / "ম্যাক্স"...</string>
+    <string name="notification_thinking">Max is thinking...</string>
+    <string name="notification_speaking">Max is speaking...</string>
 </resources>

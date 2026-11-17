@@ -54,7 +54,7 @@ fun VoiceAssistantScreen(
         ) {
             Column {
                 Text(
-                    text = "Aura Voice AI",
+                    text = "Max AI",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = FontWeight.Bold,
                     color = TextPrimary
