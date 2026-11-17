@@ -17,9 +17,9 @@ import android.util.Log
  */
 class SpeechToTextEngine(
     private val context: Context,
-    private val onPartialResult: (String) -> Unit,
-    private val onFinalResult: (String) -> Unit,
-    private val onError: (Int) -> Unit
+    private val onPartialResultCallback: (String) -> Unit,
+    private val onFinalResultCallback: (String) -> Unit,
+    private val onErrorCallback: (Int) -> Unit
 ) {
     private val tag = "SpeechToTextEngine"
     private var speechRecognizer: SpeechRecognizer? = null
@@ -94,7 +94,7 @@ class SpeechToTextEngine(
                 isCurrentlyRecognizing = false
                 consecutiveErrors++
                 Log.w(tag, "STT Error code: $error, count: $consecutiveErrors")
-                onError(error)
+                onErrorCallback(error)
 
                 // Prevent rapid crash loop or disconnect spam
                 scheduleRestart(error)
@@ -108,7 +108,7 @@ class SpeechToTextEngine(
                     val text = matches[0].trim()
                     if (text.isNotBlank()) {
                         Log.d(tag, "STT Final Result: $text")
-                        onFinalResult(text)
+                        onFinalResultCallback(text)
                     }
                 }
 
@@ -122,7 +122,7 @@ class SpeechToTextEngine(
                 if (!matches.isNullOrEmpty()) {
                     val partial = matches[0].trim()
                     if (partial.isNotBlank()) {
-                        onPartialResult(partial)
+                        onPartialResultCallback(partial)
                     }
                 }
             }
