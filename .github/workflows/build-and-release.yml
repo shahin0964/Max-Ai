@@ -1,0 +1,68 @@
+name: Build and Release Max AI APK
+
+on:
+  push:
+    branches: [ "main" ]
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build Debug APK
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Prepare Release APK
+      run: |
+        mkdir -p release-artifacts
+        cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/MaxAI-Voice-Assistant.apk
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MaxAI-Voice-Assistant-APK
+        path: release-artifacts/MaxAI-Voice-Assistant.apk
+
+    - name: Create GitHub Release
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: softprops/action-gh-release@v2
+      with:
+        name: "Max AI Voice Assistant ${{ github.ref_name }}"
+        draft: false
+        prerelease: false
+        generate_release_notes: false
+        body: |
+          ## 🎙️ Max AI Voice Assistant (${{ github.ref_name }})
+          **100% Offline, Private, Always-Active On-Device Voice AI for Android**
+
+          ### ✨ Key Highlights:
+          - 🚫 **No API Key & No Internet Needed**: Runs 100% locally on your phone.
+          - 🧠 **On-Device Brain (3B SLM Ready)**: Qwen 2.5 3B / Llama 3.2 3B support.
+          - 👂 **Background Wake Word**: "Hey Max" / "ম্যাক্স" triggers instantly.
+          - 🔄 **Continuous Learning**: Automatically learns facts & preferences from your voice conversations into internal memory.
+          - ⚡ **ROG Phone 7 Optimized**: Snapdragon 8 Gen 2 / 12GB RAM high-speed inference.
+
+          ### 📦 Installation:
+          Download `MaxAI-Voice-Assistant.apk` below and install it directly on your Android device.
+        files: release-artifacts/MaxAI-Voice-Assistant.apk
