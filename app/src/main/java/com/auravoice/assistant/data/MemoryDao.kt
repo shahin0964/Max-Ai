@@ -8,6 +8,9 @@ interface MemoryDao {
     @Query("SELECT * FROM user_memories ORDER BY timestamp DESC")
     fun getAllMemories(): Flow<List<MemoryEntity>>
 
+    @Query("SELECT * FROM user_memories ORDER BY timestamp DESC")
+    suspend fun getAllMemoriesSync(): List<MemoryEntity>
+
     @Query("SELECT * FROM user_memories ORDER BY timestamp DESC LIMIT :limit")
     suspend fun getRecentMemories(limit: Int = 20): List<MemoryEntity>
 

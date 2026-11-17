@@ -111,7 +111,7 @@ class VoiceAssistantForegroundService : Service() {
             database?.let { db ->
                 memoryManager = MemoryManager(db)
             }
-            llamaEngine = LlamaEngine(this)
+            llamaEngine = LlamaEngine(this, memoryManager)
 
             wakeWordDetector = WakeWordDetector {
                 AppLogger.i(tag, "Wake word trigger activated")
@@ -181,6 +181,14 @@ class VoiceAssistantForegroundService : Service() {
         ttsEngine?.speak("বলুন, শুনছি...")
     }
 
+    fun setVoicePersona(persona: com.auravoice.assistant.audio.VoicePersona) {
+        ttsEngine?.setPersona(persona)
+    }
+
+    fun getVoicePersona(): com.auravoice.assistant.audio.VoicePersona {
+        return ttsEngine?.getCurrentPersona() ?: com.auravoice.assistant.audio.VoicePersona.JARVIS
+    }
+
     fun processUserQuery(query: String) {
         val cleanQuery = query.trim()
         if (cleanQuery.isBlank()) return
@@ -195,19 +203,24 @@ class VoiceAssistantForegroundService : Service() {
                     ChatMessageEntity(sender = "user", text = cleanQuery)
                 )
 
-                val systemPrompt = memoryManager?.buildSystemPrompt(cleanQuery)
-                    ?: "You are Aura Voice AI. Answer concisely in Bengali or English."
+                // 1. Learn fact from conversation and check if it was an explicit teaching/memory update
+                val learnedFeedback = memoryManager?.learnFromConversation(cleanQuery, "")
 
-                val response = llamaEngine?.generateResponse(systemPrompt, cleanQuery)
-                    ?: "আমি বুঝতে পেরেছি।"
+                val response = if (learnedFeedback != null) {
+                    learnedFeedback
+                } else {
+                    val systemPrompt = memoryManager?.buildSystemPrompt(cleanQuery)
+                        ?: "You are Aura Voice AI. Answer concisely in Bengali or English."
+                    llamaEngine?.generateResponse(systemPrompt, cleanQuery)
+                        ?: "আমি প্রস্তুত আছি, বলুন কী করতে হবে।"
+                }
+
                 _currentResponse.value = response
                 AppLogger.i(tag, "Generated response: $response")
 
                 database?.chatMessageDao()?.insertMessage(
                     ChatMessageEntity(sender = "assistant", text = response)
                 )
-
-                memoryManager?.learnFromConversation(cleanQuery, response)
 
                 _currentState.value = AssistantState.SPEAKING
                 ttsEngine?.speak(response)

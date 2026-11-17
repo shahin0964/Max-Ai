@@ -244,7 +244,18 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 )
-                                4 -> SettingsScreen()
+                                4 -> {
+                                    var currentPersona by remember {
+                                        mutableStateOf(assistantService?.getVoicePersona() ?: com.auravoice.assistant.audio.VoicePersona.JARVIS)
+                                    }
+                                    SettingsScreen(
+                                        currentPersona = currentPersona,
+                                        onPersonaChange = { newPersona ->
+                                            currentPersona = newPersona
+                                            assistantService?.setVoicePersona(newPersona)
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
