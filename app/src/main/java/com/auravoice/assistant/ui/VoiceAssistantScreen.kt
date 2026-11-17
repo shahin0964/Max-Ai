@@ -26,10 +26,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.auravoice.assistant.brain.ModelInfo
 import com.auravoice.assistant.data.ChatMessageEntity
 import com.auravoice.assistant.service.AssistantState
 import com.auravoice.assistant.ui.components.ChatBubble
 import com.auravoice.assistant.ui.components.Jarvis3DReactorOrb
+import com.auravoice.assistant.ui.components.ModelLoadHudCard
 import com.auravoice.assistant.ui.theme.*
 
 @Composable
@@ -40,6 +42,7 @@ fun VoiceAssistantScreen(
     response: String,
     chatHistory: List<ChatMessageEntity>,
     isServiceRunning: Boolean,
+    modelInfo: ModelInfo = ModelInfo(),
     onToggleService: () -> Unit,
     onManualVoiceClick: () -> Unit,
     onSamplePromptClick: (String) -> Unit
@@ -57,14 +60,19 @@ fun VoiceAssistantScreen(
             onToggleService = onToggleService
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+
+        // Visual Model Loader HUD Card (Shows on-device 3B SLM loading, VRAM allocation, NPU/GPU telemetry)
+        ModelLoadHudCard(modelInfo = modelInfo)
+
+        Spacer(modifier = Modifier.height(6.dp))
 
         // 2. Center 3D Arc Reactor Hologram
         Jarvis3DReactorOrb(
             state = state,
             amplitude = amplitude,
             onClick = onManualVoiceClick,
-            modifier = Modifier.padding(vertical = 4.dp)
+            modifier = Modifier.padding(vertical = 2.dp)
         )
 
         // 3. Futuristic Status Telemetry Readout

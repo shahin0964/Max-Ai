@@ -30,19 +30,44 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x gradlew
 
-    - name: Build Debug APK
-      run: ./gradlew assembleDebug --stacktrace
+    - name: Decode Release Keystore
+      run: |
+        if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+          echo "Decoding release keystore..."
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
+          ls -lh app/keystore.jks
+        else
+          echo "Warning: KEYSTORE_BASE64 secret is empty!"
+        fi
+
+    - name: Build Signed Release APK
+      run: |
+        if [ -f app/keystore.jks ]; then
+          echo "Keystore detected! Building Signed Release APK..."
+          ./gradlew assembleRelease --stacktrace
+        else
+          echo "No keystore detected, falling back to assembleDebug..."
+          ./gradlew assembleDebug --stacktrace
+        fi
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
     - name: Prepare Release APK
       run: |
         mkdir -p release-artifacts
-        cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/AuraVoice-AI.apk
+        if [ -f app/build/outputs/apk/release/app-release.apk ]; then
+          cp app/build/outputs/apk/release/app-release.apk release-artifacts/AuraVoice-AI-Signed.apk
+        else
+          cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/AuraVoice-AI-Signed.apk
+        fi
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: AuraVoice-AI-APK
-        path: release-artifacts/AuraVoice-AI.apk
+        name: AuraVoice-AI-Signed-APK
+        path: release-artifacts/AuraVoice-AI-Signed.apk
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
@@ -53,16 +78,17 @@ jobs:
         prerelease: false
         generate_release_notes: false
         body: |
-          ## 🎙️ Aura Voice AI (${{ github.ref_name }})
-          **Jarvis-Style 3D Holographic Arc Reactor • 100% Offline On-Device AI**
+          ## 🎙️ Aura Voice AI (${{ github.ref_name }}) [Official Signed Release]
+          **100% Offline, Private, Super-Powered On-Device AI Cockpit**
 
-          ### ✨ Key Features:
-          - 🦾 **Jarvis Cockpit & 3D Arc Reactor**: Multi-axis rotating holographic 3D rings, plasma energy core, and audio-reactive frequency equalizers.
-          - 🚫 **No API Key & 100% Offline**: Runs on-device with zero internet or cloud dependency.
-          - 🧠 **Continuous Learning & Memory**: Automatically extracts facts & user preferences into local SQLite storage.
-          - 👂 **Continuous Voice Activation**: Stabilized voice listener preventing disconnect loops.
-          - ⚡ **ROG Phone 7 Optimized**: High-speed Snapdragon 8 Gen 2 inference.
+          ### ✨ What's New:
+          - 🔐 **Official Keystore Signed APK**: Built and cryptographically signed directly on GitHub.
+          - 💬 **Interactive Chat Cockpit**: Full conversational chat bar with live text generation and voice toggling.
+          - 🧠 **Offline Model Visual Loader**: Real-time HUD showing model initialization, VRAM allocation (2.2GB), and Snapdragon 8 Gen 2 NPU telemetry.
+          - 💻 **Embedded Linux Terminal**: Built-in shell runner (Termux / Linux commands) inside the assistant.
+          - 📱 **Full Phone & App Automation**: Automatically launch any app (YouTube, WhatsApp, Camera, Settings, etc.) and control hardware (Flashlight, Battery stats).
+          - 🦾 **Jarvis 3D Holographic Arc Reactor**: Multi-axis 3D gyroscope rings & audio-reactive plasma core.
 
           ### 📦 Installation:
-          Download `AuraVoice-AI.apk` below and install directly on your Android phone.
-        files: release-artifacts/AuraVoice-AI.apk
+          Download `AuraVoice-AI-Signed.apk` below and install directly on your Android phone.
+        files: release-artifacts/AuraVoice-AI-Signed.apk

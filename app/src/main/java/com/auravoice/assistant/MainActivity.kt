@@ -16,23 +16,30 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Chat
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Terminal
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.auravoice.assistant.brain.ModelLoadManager
 import com.auravoice.assistant.data.AppDatabase
 import com.auravoice.assistant.data.ChatMessageEntity
 import com.auravoice.assistant.service.AssistantState
 import com.auravoice.assistant.service.VoiceAssistantForegroundService
+import com.auravoice.assistant.terminal.LinuxShellEngine
+import com.auravoice.assistant.ui.ChatScreen
 import com.auravoice.assistant.ui.MemoryViewerScreen
 import com.auravoice.assistant.ui.SettingsScreen
+import com.auravoice.assistant.ui.TerminalScreen
 import com.auravoice.assistant.ui.VoiceAssistantScreen
 import com.auravoice.assistant.ui.theme.*
 import com.auravoice.assistant.util.AppLogger
@@ -43,6 +50,8 @@ class MainActivity : ComponentActivity() {
     private val tag = "MainActivity"
     private var assistantService: VoiceAssistantForegroundService? = null
     private var isBound = false
+    private val modelLoadManager by lazy { ModelLoadManager(this) }
+    private val shellEngine by lazy { LinuxShellEngine() }
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -80,6 +89,9 @@ class MainActivity : ComponentActivity() {
             val database = app.database
             AppLogger.i(tag, "Database initialized successfully")
 
+            // Initialize visible on-device 3B SLM neural engine
+            modelLoadManager.initializeModel(lifecycleScope)
+
             setContent {
                 AuraVoiceTheme {
                     var selectedTab by remember { mutableIntStateOf(0) }
@@ -92,6 +104,7 @@ class MainActivity : ComponentActivity() {
                         ?: remember { mutableStateOf("") }
                     val response by assistantService?.currentResponse?.collectAsState()
                         ?: remember { mutableStateOf("") }
+                    val modelInfo by modelLoadManager.modelInfo.collectAsState()
 
                     val chatHistory by database.chatMessageDao().getAllMessages().collectAsState(initial = emptyList())
                     val memories by database.memoryDao().getAllMemories().collectAsState(initial = emptyList())
@@ -102,8 +115,8 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 0,
                                     onClick = { selectedTab = 0 },
-                                    icon = { Icon(Icons.Default.Mic, contentDescription = "Reactor") },
-                                    label = { Text("Core") },
+                                    icon = { Icon(Icons.Default.Mic, contentDescription = "Core") },
+                                    label = { Text("Core", fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = NeonCyan,
                                         selectedTextColor = NeonCyan,
@@ -115,8 +128,8 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 1,
                                     onClick = { selectedTab = 1 },
-                                    icon = { Icon(Icons.Default.Psychology, contentDescription = "Memory") },
-                                    label = { Text("Memory") },
+                                    icon = { Icon(Icons.Default.Chat, contentDescription = "Chat") },
+                                    label = { Text("Chat", fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = NeonCyan,
                                         selectedTextColor = NeonCyan,
@@ -128,8 +141,34 @@ class MainActivity : ComponentActivity() {
                                 NavigationBarItem(
                                     selected = selectedTab == 2,
                                     onClick = { selectedTab = 2 },
-                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Diagnostics") },
-                                    label = { Text("System") },
+                                    icon = { Icon(Icons.Default.Terminal, contentDescription = "Linux") },
+                                    label = { Text("Linux", fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NeonGreen,
+                                        selectedTextColor = NeonGreen,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted,
+                                        indicatorColor = SurfaceCard
+                                    )
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 3,
+                                    onClick = { selectedTab = 3 },
+                                    icon = { Icon(Icons.Default.Psychology, contentDescription = "Memory") },
+                                    label = { Text("Memory", fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NeonCyan,
+                                        selectedTextColor = NeonCyan,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted,
+                                        indicatorColor = SurfaceCard
+                                    )
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 4,
+                                    onClick = { selectedTab = 4 },
+                                    icon = { Icon(Icons.Default.Settings, contentDescription = "System") },
+                                    label = { Text("System", fontSize = 11.sp, fontFamily = FontFamily.Monospace) },
                                     colors = NavigationBarItemDefaults.colors(
                                         selectedIconColor = NeonCyan,
                                         selectedTextColor = NeonCyan,
@@ -150,6 +189,7 @@ class MainActivity : ComponentActivity() {
                                     response = response,
                                     chatHistory = chatHistory,
                                     isServiceRunning = isBound,
+                                    modelInfo = modelInfo,
                                     onToggleService = {
                                         if (isBound) {
                                             stopAssistantService()
@@ -171,7 +211,27 @@ class MainActivity : ComponentActivity() {
                                         assistantService?.processUserQuery(prompt)
                                     }
                                 )
-                                1 -> MemoryViewerScreen(
+                                1 -> ChatScreen(
+                                    chatHistory = chatHistory,
+                                    onSendMessage = { query ->
+                                        if (!isBound) {
+                                            checkPermissionsAndStart()
+                                        }
+                                        assistantService?.processUserQuery(query)
+                                    },
+                                    onVoiceClick = {
+                                        selectedTab = 0
+                                        if (!isBound) {
+                                            checkPermissionsAndStart()
+                                        } else {
+                                            assistantService?.startListeningCycle()
+                                        }
+                                    }
+                                )
+                                2 -> TerminalScreen(
+                                    shellEngine = shellEngine
+                                )
+                                3 -> MemoryViewerScreen(
                                     memories = memories,
                                     onDeleteMemory = { memory ->
                                         lifecycleScope.launch {
@@ -184,7 +244,7 @@ class MainActivity : ComponentActivity() {
                                         }
                                     }
                                 )
-                                2 -> SettingsScreen()
+                                4 -> SettingsScreen()
                             }
                         }
                     }

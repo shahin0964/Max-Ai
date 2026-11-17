@@ -93,8 +93,29 @@ class LlamaEngine(private val context: Context) {
         generateSmartLocalResponse(trimmed, systemPrompt)
     }
 
+    private val deviceController = com.auravoice.assistant.service.DeviceController(context)
+
     private fun matchFastIntent(query: String, systemPrompt: String): String? {
         val lower = query.lowercase()
+
+        // 1. Device App Launcher (YouTube, WhatsApp, Facebook, Camera, etc.)
+        if (lower.contains("open ") || lower.contains("ওপেন") || lower.contains("চালু করো") || lower.contains("খোল") || lower.contains("খোলো")) {
+            val appResult = deviceController.openAppByName(query)
+            if (appResult.first) {
+                return appResult.second
+            }
+        }
+
+        // 2. Flashlight / Torch Hardware Control
+        if (lower.contains("flashlight") || lower.contains("টর্চ") || lower.contains("লাইট")) {
+            val isTurnOn = lower.contains("on") || lower.contains("জ্বালাও") || lower.contains("অন") || (!lower.contains("off") && !lower.contains("নিভাও") && !lower.contains("বন্ধ"))
+            return deviceController.toggleTorch(isTurnOn)
+        }
+
+        // 3. Battery Telemetry
+        if (lower.contains("battery") || lower.contains("ব্যাটারি") || lower.contains("চার্জ কত") || lower.contains("চার্জ")) {
+            return deviceController.getBatteryStatus()
+        }
 
         // Greeting
         if (lower in listOf("hi", "hello", "hey", "হাই", "হ্যালো", "কেমন আছো", "how are you")) {
