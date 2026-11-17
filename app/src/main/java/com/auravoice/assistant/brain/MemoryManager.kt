@@ -236,6 +236,22 @@ class MemoryManager(private val database: AppDatabase) {
         sb.toString().trimEnd()
     }
 
+    /**
+     * Finds any previously learned web knowledge or facts matching keywords in query.
+     */
+    suspend fun findLearnedTopic(query: String): String? = withContext(Dispatchers.IO) {
+        val keywords = query.split(Regex("[\\s,?.!]+")).filter { it.length > 2 }
+        for (kw in keywords) {
+            val matches = memoryDao.searchMemories(kw)
+            for (m in matches) {
+                if (m.category == "WEB_KNOWLEDGE" || m.category == "NOTE") {
+                    return@withContext m.fact
+                }
+            }
+        }
+        null
+    }
+
     suspend fun saveFact(category: String, fact: String) {
         val cleanFact = fact.trim()
         if (cleanFact.isNotBlank() && cleanFact.length > 2) {

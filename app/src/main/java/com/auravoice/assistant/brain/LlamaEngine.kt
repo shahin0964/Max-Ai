@@ -22,6 +22,7 @@ class LlamaEngine(
     private var isModelLoaded = false
     private var loadedModelPath: String? = null
     private val deviceController = DeviceController(context)
+    private val researchEngine = com.auravoice.assistant.network.OnlineResearchEngine(context)
 
     init {
         findAndPrepareModel()
@@ -103,6 +104,33 @@ class LlamaEngine(
     private suspend fun matchCognitiveIntent(query: String, systemPrompt: String): String? {
         val lower = query.lowercase(Locale.ROOT)
         val isBengali = query.matches(Regex(".*[\\p{InBengali}].*"))
+
+        // --- DOMAIN 0: Web Research & Live Online Search ---
+        val isSearchCommand = lower.contains("খুঁজে বের করো") || lower.contains("খুজে বের করো") ||
+                lower.contains("বের করো") || lower.contains("খোঁজ করো") || lower.contains("সার্চ করো") ||
+                lower.contains("ইন্টারনেটে") || lower.contains("অনলাইনে") || lower.contains("নেটে") ||
+                lower.startsWith("search ") || lower.contains("search for") || lower.contains("find out")
+
+        if (isSearchCommand) {
+            val remembered = memoryManager?.findLearnedTopic(query)
+            if (remembered != null) {
+                return "আমি আগেই এটি অনলাইনে খুঁজে মেমোরিতে রেখেছিলাম: $remembered"
+            }
+
+            val research = researchEngine.researchTopic(query)
+            if (!research.isOnline) {
+                return research.summary
+            }
+
+            if (research.isSuccess && research.summary.isNotBlank()) {
+                // Save immediately to memory so it's forever accessible offline!
+                memoryManager?.saveFact("WEB_KNOWLEDGE", "${research.topic}: ${research.summary}")
+                AppLogger.i(tag, "Saved web knowledge to offline memory: ${research.topic}")
+                return "ইন্টারনেট থেকে অনুসন্ধান করে পেয়েছি: ${research.summary}। আমি এটি মেমোরিতে সংরক্ষণ করে রাখলাম যাতে পরবর্তীতে অফলাইনেও আপনাকে বলতে পারি।"
+            } else {
+                return research.summary
+            }
+        }
 
         // --- DOMAIN 1: Math & Calculations ---
         val mathResult = AuraBrainKnowledge.solveMath(query)
@@ -263,9 +291,25 @@ class LlamaEngine(
      * Natural, intelligent contextual conversational response.
      * Never repeats or echoes the user query mechanically.
      */
-    private fun generateConversationalDialogue(query: String, systemPrompt: String): String {
+    private suspend fun generateConversationalDialogue(query: String, systemPrompt: String): String {
         val isBengali = query.matches(Regex(".*[\\p{InBengali}].*"))
         val lower = query.lowercase(Locale.ROOT)
+
+        // 1. Check if this fact is already in offline memory from a prior web search or note
+        val rememberedFact = memoryManager?.findLearnedTopic(query)
+        if (rememberedFact != null) {
+            return "আমার মেমোরিতে এটি সংরক্ষিত রয়েছে: $rememberedFact"
+        }
+
+        // 2. If internet is available, autonomously research online and store in memory
+        if (researchEngine.isInternetAvailable()) {
+            val autoResearch = researchEngine.researchTopic(query)
+            if (autoResearch.isSuccess && autoResearch.summary.length > 20) {
+                memoryManager?.saveFact("WEB_KNOWLEDGE", "${autoResearch.topic}: ${autoResearch.summary}")
+                AppLogger.i(tag, "Autonomously researched & memorized: ${autoResearch.topic}")
+                return "${autoResearch.summary} (আমি এটি ভবিষ্যতে অফলাইনে ব্যবহারের জন্য মেমোরিতে সেভ করে রাখলাম।)"
+            }
+        }
 
         if (isBengali) {
             return when {
