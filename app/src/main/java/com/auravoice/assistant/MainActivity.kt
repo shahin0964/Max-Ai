@@ -13,6 +13,7 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
@@ -20,9 +21,13 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.auravoice.assistant.data.AppDatabase
 import com.auravoice.assistant.data.ChatMessageEntity
 import com.auravoice.assistant.service.AssistantState
 import com.auravoice.assistant.service.VoiceAssistantForegroundService
@@ -30,21 +35,25 @@ import com.auravoice.assistant.ui.MemoryViewerScreen
 import com.auravoice.assistant.ui.SettingsScreen
 import com.auravoice.assistant.ui.VoiceAssistantScreen
 import com.auravoice.assistant.ui.theme.*
+import com.auravoice.assistant.util.AppLogger
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
+    private val tag = "MainActivity"
     private var assistantService: VoiceAssistantForegroundService? = null
     private var isBound = false
 
     private val serviceConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+            AppLogger.i(tag, "ServiceConnection: Connected to VoiceAssistantForegroundService")
             val binder = service as VoiceAssistantForegroundService.LocalBinder
             assistantService = binder.getService()
             isBound = true
         }
 
         override fun onServiceDisconnected(name: ComponentName?) {
+            AppLogger.w(tag, "ServiceConnection: Disconnected from service")
             assistantService = null
             isBound = false
         }
@@ -54,137 +63,178 @@ class MainActivity : ComponentActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         val recordAudioGranted = permissions[Manifest.permission.RECORD_AUDIO] ?: false
+        AppLogger.i(tag, "Permission result: RECORD_AUDIO granted = $recordAudioGranted")
         if (recordAudioGranted) {
             startAssistantService()
         } else {
-            Toast.makeText(this, "Microphone permission needed for Aura Voice AI", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "Microphone permission needed for Voice AI", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppLogger.i(tag, "MainActivity onCreate started")
 
-        // Request permissions safely
-        checkPermissions()
+        try {
+            val app = application as AuraApplication
+            val database = app.database
+            AppLogger.i(tag, "Database initialized successfully")
 
-        val app = application as AuraApplication
-        val database = app.database
+            setContent {
+                AuraVoiceTheme {
+                    var selectedTab by remember { mutableIntStateOf(0) }
 
+                    val assistantState by assistantService?.currentState?.collectAsState()
+                        ?: remember { mutableStateOf(AssistantState.IDLE) }
+                    val amplitude by assistantService?.amplitude?.collectAsState()
+                        ?: remember { mutableFloatStateOf(0f) }
+                    val transcript by assistantService?.currentTranscript?.collectAsState()
+                        ?: remember { mutableStateOf("") }
+                    val response by assistantService?.currentResponse?.collectAsState()
+                        ?: remember { mutableStateOf("") }
+
+                    val chatHistory by database.chatMessageDao().getAllMessages().collectAsState(initial = emptyList())
+                    val memories by database.memoryDao().getAllMemories().collectAsState(initial = emptyList())
+
+                    Scaffold(
+                        bottomBar = {
+                            NavigationBar(containerColor = SurfaceDark) {
+                                NavigationBarItem(
+                                    selected = selectedTab == 0,
+                                    onClick = { selectedTab = 0 },
+                                    icon = { Icon(Icons.Default.Mic, contentDescription = "Reactor") },
+                                    label = { Text("Core") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NeonCyan,
+                                        selectedTextColor = NeonCyan,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted,
+                                        indicatorColor = SurfaceCard
+                                    )
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 1,
+                                    onClick = { selectedTab = 1 },
+                                    icon = { Icon(Icons.Default.Psychology, contentDescription = "Memory") },
+                                    label = { Text("Memory") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NeonCyan,
+                                        selectedTextColor = NeonCyan,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted,
+                                        indicatorColor = SurfaceCard
+                                    )
+                                )
+                                NavigationBarItem(
+                                    selected = selectedTab == 2,
+                                    onClick = { selectedTab = 2 },
+                                    icon = { Icon(Icons.Default.Settings, contentDescription = "Diagnostics") },
+                                    label = { Text("System") },
+                                    colors = NavigationBarItemDefaults.colors(
+                                        selectedIconColor = NeonCyan,
+                                        selectedTextColor = NeonCyan,
+                                        unselectedIconColor = TextMuted,
+                                        unselectedTextColor = TextMuted,
+                                        indicatorColor = SurfaceCard
+                                    )
+                                )
+                            }
+                        }
+                    ) { innerPadding ->
+                        Box(modifier = Modifier.padding(innerPadding)) {
+                            when (selectedTab) {
+                                0 -> VoiceAssistantScreen(
+                                    state = assistantState,
+                                    amplitude = amplitude,
+                                    transcript = transcript,
+                                    response = response,
+                                    chatHistory = chatHistory,
+                                    isServiceRunning = isBound,
+                                    onToggleService = {
+                                        if (isBound) {
+                                            stopAssistantService()
+                                        } else {
+                                            checkPermissionsAndStart()
+                                        }
+                                    },
+                                    onManualVoiceClick = {
+                                        if (!isBound) {
+                                            checkPermissionsAndStart()
+                                        } else {
+                                            assistantService?.startListeningCycle()
+                                        }
+                                    },
+                                    onSamplePromptClick = { prompt ->
+                                        if (!isBound) {
+                                            checkPermissionsAndStart()
+                                        }
+                                        assistantService?.processUserQuery(prompt)
+                                    }
+                                )
+                                1 -> MemoryViewerScreen(
+                                    memories = memories,
+                                    onDeleteMemory = { memory ->
+                                        lifecycleScope.launch {
+                                            database.memoryDao().deleteMemory(memory)
+                                        }
+                                    },
+                                    onClearAllMemories = {
+                                        lifecycleScope.launch {
+                                            database.memoryDao().clearAllMemories()
+                                        }
+                                    }
+                                )
+                                2 -> SettingsScreen()
+                            }
+                        }
+                    }
+                }
+            }
+
+            AppLogger.i(tag, "MainActivity setContent completed")
+
+            // Check permissions safely without throwing
+            checkPermissionsAndStart()
+
+        } catch (t: Throwable) {
+            AppLogger.e(tag, "Fatal error inside MainActivity onCreate", t)
+            renderCrashFallback(t)
+        }
+    }
+
+    private fun renderCrashFallback(t: Throwable) {
         setContent {
-            AuraVoiceTheme {
-                var selectedTab by remember { mutableIntStateOf(0) }
-
-                // Collect service states
-                val assistantState by assistantService?.currentState?.collectAsState()
-                    ?: remember { mutableStateOf(AssistantState.IDLE) }
-                val amplitude by assistantService?.amplitude?.collectAsState()
-                    ?: remember { mutableFloatStateOf(0f) }
-                val transcript by assistantService?.currentTranscript?.collectAsState()
-                    ?: remember { mutableStateOf("") }
-                val response by assistantService?.currentResponse?.collectAsState()
-                    ?: remember { mutableStateOf("") }
-
-                // Collect database flows safely
-                val chatHistory by database.chatMessageDao().getAllMessages().collectAsState(initial = emptyList())
-                val memories by database.memoryDao().getAllMemories().collectAsState(initial = emptyList())
-
-                Scaffold(
-                    bottomBar = {
-                        NavigationBar(containerColor = SurfaceDark) {
-                            NavigationBarItem(
-                                selected = selectedTab == 0,
-                                onClick = { selectedTab = 0 },
-                                icon = { Icon(Icons.Default.Mic, contentDescription = "Reactor") },
-                                label = { Text("Core") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = NeonCyan,
-                                    selectedTextColor = NeonCyan,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted,
-                                    indicatorColor = SurfaceCard
-                                )
-                            )
-                            NavigationBarItem(
-                                selected = selectedTab == 1,
-                                onClick = { selectedTab = 1 },
-                                icon = { Icon(Icons.Default.Psychology, contentDescription = "Memory") },
-                                label = { Text("Memory") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = NeonCyan,
-                                    selectedTextColor = NeonCyan,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted,
-                                    indicatorColor = SurfaceCard
-                                )
-                            )
-                            NavigationBarItem(
-                                selected = selectedTab == 2,
-                                onClick = { selectedTab = 2 },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Diagnostics") },
-                                label = { Text("System") },
-                                colors = NavigationBarItemDefaults.colors(
-                                    selectedIconColor = NeonCyan,
-                                    selectedTextColor = NeonCyan,
-                                    unselectedIconColor = TextMuted,
-                                    unselectedTextColor = TextMuted,
-                                    indicatorColor = SurfaceCard
-                                )
-                            )
-                        }
-                    }
-                ) { innerPadding ->
-                    Box(modifier = Modifier.padding(innerPadding)) {
-                        when (selectedTab) {
-                            0 -> VoiceAssistantScreen(
-                                state = assistantState,
-                                amplitude = amplitude,
-                                transcript = transcript,
-                                response = response,
-                                chatHistory = chatHistory,
-                                isServiceRunning = isBound,
-                                onToggleService = {
-                                    if (isBound) {
-                                        stopAssistantService()
-                                    } else {
-                                        startAssistantService()
-                                    }
-                                },
-                                onManualVoiceClick = {
-                                    if (!isBound) {
-                                        startAssistantService()
-                                    } else {
-                                        assistantService?.startListeningCycle()
-                                    }
-                                },
-                                onSamplePromptClick = { prompt ->
-                                    if (!isBound) {
-                                        startAssistantService()
-                                    }
-                                    assistantService?.processUserQuery(prompt)
-                                }
-                            )
-                            1 -> MemoryViewerScreen(
-                                memories = memories,
-                                onDeleteMemory = { memory ->
-                                    lifecycleScope.launch {
-                                        database.memoryDao().deleteMemory(memory)
-                                    }
-                                },
-                                onClearAllMemories = {
-                                    lifecycleScope.launch {
-                                        database.memoryDao().clearAllMemories()
-                                    }
-                                }
-                            )
-                            2 -> SettingsScreen()
-                        }
-                    }
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(DarkBackground)
+                    .padding(24.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = "AURA CORE RECOVERY MODE",
+                        color = NeonPink,
+                        fontSize = 18.sp
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "A diagnostic error occurred during startup:\n${t.message}",
+                        color = TextSecondary,
+                        fontSize = 13.sp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Log written to: /sdcard/Download/aura_app.log",
+                        color = NeonCyan,
+                        fontSize = 12.sp
+                    )
                 }
             }
         }
     }
 
-    private fun checkPermissions() {
+    private fun checkPermissionsAndStart() {
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -195,8 +245,10 @@ class MainActivity : ComponentActivity() {
         }
 
         if (missing.isNotEmpty()) {
+            AppLogger.i(tag, "Requesting missing permissions: $missing")
             permissionLauncher.launch(missing.toTypedArray())
         } else {
+            AppLogger.i(tag, "All permissions granted, starting service")
             startAssistantService()
         }
     }
@@ -210,8 +262,9 @@ class MainActivity : ComponentActivity() {
                 startService(intent)
             }
             bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+            AppLogger.i(tag, "startAssistantService executed successfully")
         } catch (e: Exception) {
-            Toast.makeText(this, "Service init note: ${e.message}", Toast.LENGTH_SHORT).show()
+            AppLogger.e(tag, "Failed to start service: ${e.message}", e)
         }
     }
 
@@ -223,8 +276,9 @@ class MainActivity : ComponentActivity() {
             }
             val intent = Intent(this, VoiceAssistantForegroundService::class.java)
             stopService(intent)
+            AppLogger.i(tag, "stopAssistantService executed")
         } catch (e: Exception) {
-            // Safe teardown
+            AppLogger.w(tag, "Error stopping service: ${e.message}")
         }
     }
 

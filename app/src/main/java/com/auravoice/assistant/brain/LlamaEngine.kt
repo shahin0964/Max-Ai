@@ -39,20 +39,24 @@ class LlamaEngine(private val context: Context) {
             return loadedModelPath
         }
 
-        // Check common local storage paths (e.g. Download folder for easy user side-loading)
-        val downloadDir = File("/sdcard/Download")
-        if (downloadDir.exists()) {
-            val downloadGgufs = downloadDir.listFiles { _, name ->
-                name.contains("qwen", ignoreCase = true) ||
-                name.contains("llama", ignoreCase = true) &&
-                name.endsWith(".gguf")
+        // Check common local storage paths safely
+        try {
+            val downloadDir = File("/sdcard/Download")
+            if (downloadDir.exists() && downloadDir.canRead()) {
+                val downloadGgufs = downloadDir.listFiles { _, name ->
+                    name.contains("qwen", ignoreCase = true) ||
+                    name.contains("llama", ignoreCase = true) &&
+                    name.endsWith(".gguf")
+                }
+                if (!downloadGgufs.isNullOrEmpty()) {
+                    loadedModelPath = downloadGgufs[0].absolutePath
+                    isModelLoaded = true
+                    Log.d(tag, "Found model in Download folder: $loadedModelPath")
+                    return loadedModelPath
+                }
             }
-            if (!downloadGgufs.isNullOrEmpty()) {
-                loadedModelPath = downloadGgufs[0].absolutePath
-                isModelLoaded = true
-                Log.d(tag, "Found model in Download folder: $loadedModelPath")
-                return loadedModelPath
-            }
+        } catch (e: Exception) {
+            Log.w(tag, "Cannot scan /sdcard/Download yet: ${e.message}")
         }
 
         return null

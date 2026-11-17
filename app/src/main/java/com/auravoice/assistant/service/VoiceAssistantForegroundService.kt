@@ -8,7 +8,6 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.auravoice.assistant.MainActivity
 import com.auravoice.assistant.R
@@ -17,6 +16,7 @@ import com.auravoice.assistant.brain.LlamaEngine
 import com.auravoice.assistant.brain.MemoryManager
 import com.auravoice.assistant.data.AppDatabase
 import com.auravoice.assistant.data.ChatMessageEntity
+import com.auravoice.assistant.util.AppLogger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,7 +30,7 @@ enum class AssistantState {
 
 class VoiceAssistantForegroundService : Service() {
 
-    private val tag = "VoiceService"
+    private val tag = "VoiceAssistantService"
     private val binder = LocalBinder()
     private val serviceScope = CoroutineScope(Dispatchers.Main + SupervisorJob())
 
@@ -68,16 +68,18 @@ class VoiceAssistantForegroundService : Service() {
 
     override fun onCreate() {
         super.onCreate()
+        AppLogger.i(tag, "Service onCreate called")
         try {
             createNotificationChannel()
             acquireWakeLock()
             initEngines()
         } catch (e: Exception) {
-            Log.e(tag, "Error in onCreate: ${e.message}", e)
+            AppLogger.e(tag, "Error in service onCreate", e)
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        AppLogger.i(tag, "Service onStartCommand called")
         try {
             val notification = buildNotification(getString(R.string.notification_listening))
             try {
@@ -90,14 +92,15 @@ class VoiceAssistantForegroundService : Service() {
                 } else {
                     startForeground(notificationId, notification)
                 }
+                AppLogger.i(tag, "startForeground initialized successfully")
             } catch (e: SecurityException) {
-                Log.w(tag, "Microphone FGS type rejected, falling back to standard FGS: ${e.message}")
+                AppLogger.w(tag, "FGS mic type rejected, falling back to standard FGS: ${e.message}")
                 startForeground(notificationId, notification)
             }
 
             startListeningCycle()
         } catch (e: Exception) {
-            Log.e(tag, "Error in onStartCommand: ${e.message}", e)
+            AppLogger.e(tag, "Error starting foreground service", e)
         }
         return START_STICKY
     }
@@ -111,16 +114,19 @@ class VoiceAssistantForegroundService : Service() {
             llamaEngine = LlamaEngine(this)
 
             wakeWordDetector = WakeWordDetector {
+                AppLogger.i(tag, "Wake word trigger activated")
                 onWakeWordTriggered()
             }
 
             ttsEngine = TextToSpeechEngine(
                 context = this,
                 onSpeechStarted = {
+                    AppLogger.d(tag, "TTS started speaking")
                     _currentState.value = AssistantState.SPEAKING
                     updateNotification(getString(R.string.notification_speaking))
                 },
                 onSpeechFinished = {
+                    AppLogger.d(tag, "TTS finished speaking")
                     _currentState.value = AssistantState.IDLE
                     updateNotification(getString(R.string.notification_listening))
                     startListeningCycle()
@@ -130,13 +136,16 @@ class VoiceAssistantForegroundService : Service() {
             sttEngine = SpeechToTextEngine(
                 context = this,
                 onPartialResult = { partial ->
+                    AppLogger.d(tag, "STT partial: $partial")
                     _currentTranscript.value = partial
                 },
                 onFinalResult = { finalQuery ->
+                    AppLogger.i(tag, "STT final: $finalQuery")
                     _currentTranscript.value = finalQuery
                     processUserQuery(finalQuery)
                 },
-                onError = { _ ->
+                onError = { errorCode ->
+                    AppLogger.w(tag, "STT reported error: $errorCode")
                     if (_currentState.value == AssistantState.LISTENING) {
                         _currentState.value = AssistantState.IDLE
                     }
@@ -149,18 +158,21 @@ class VoiceAssistantForegroundService : Service() {
                 },
                 onAudioBuffer = { _, _ -> }
             )
+
+            AppLogger.i(tag, "All engines initialized successfully")
         } catch (e: Exception) {
-            Log.e(tag, "Error initializing engines: ${e.message}", e)
+            AppLogger.e(tag, "Exception during initEngines", e)
         }
     }
 
     fun startListeningCycle() {
         try {
+            AppLogger.i(tag, "Starting listening cycle")
             _currentState.value = AssistantState.LISTENING
             audioRecordManager?.startListening(serviceScope)
             sttEngine?.startListening()
         } catch (e: Exception) {
-            Log.e(tag, "Error starting listening cycle: ${e.message}", e)
+            AppLogger.e(tag, "Error starting listening cycle", e)
         }
     }
 
@@ -175,36 +187,32 @@ class VoiceAssistantForegroundService : Service() {
 
         serviceScope.launch {
             try {
+                AppLogger.i(tag, "Processing query: $cleanQuery")
                 _currentState.value = AssistantState.THINKING
                 updateNotification(getString(R.string.notification_thinking))
 
-                // 1. Save user query in local DB
                 database?.chatMessageDao()?.insertMessage(
                     ChatMessageEntity(sender = "user", text = cleanQuery)
                 )
 
-                // 2. Build system prompt with learned memory RAG
                 val systemPrompt = memoryManager?.buildSystemPrompt(cleanQuery)
                     ?: "You are Aura Voice AI. Answer concisely in Bengali or English."
 
-                // 3. Generate response using local brain
                 val response = llamaEngine?.generateResponse(systemPrompt, cleanQuery)
                     ?: "আমি বুঝতে পেরেছি।"
                 _currentResponse.value = response
+                AppLogger.i(tag, "Generated response: $response")
 
-                // 4. Save response in local DB
                 database?.chatMessageDao()?.insertMessage(
                     ChatMessageEntity(sender = "assistant", text = response)
                 )
 
-                // 5. Continuous learning extraction
                 memoryManager?.learnFromConversation(cleanQuery, response)
 
-                // 6. Speak response via TTS
                 _currentState.value = AssistantState.SPEAKING
                 ttsEngine?.speak(response)
             } catch (e: Exception) {
-                Log.e(tag, "Error processing query: ${e.message}", e)
+                AppLogger.e(tag, "Error processing query", e)
                 _currentState.value = AssistantState.IDLE
             }
         }
@@ -217,10 +225,11 @@ class VoiceAssistantForegroundService : Service() {
                 PowerManager.PARTIAL_WAKE_LOCK,
                 "AuraVoice::AssistantWakeLock"
             ).apply {
-                acquire(10 * 60 * 60 * 1000L) // 10 hours max
+                acquire(10 * 60 * 60 * 1000L)
             }
+            AppLogger.i(tag, "WakeLock acquired")
         } catch (e: Exception) {
-            Log.w(tag, "Failed to acquire wakelock: ${e.message}")
+            AppLogger.w(tag, "Failed to acquire WakeLock: ${e.message}")
         }
     }
 
@@ -248,7 +257,6 @@ class VoiceAssistantForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        // Using ic_aura_stat (safe 24dp monochrome icon) prevents RemoteServiceException
         return NotificationCompat.Builder(this, channelId)
             .setContentTitle(getString(R.string.notification_title))
             .setContentText(statusText)
@@ -263,12 +271,13 @@ class VoiceAssistantForegroundService : Service() {
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.notify(notificationId, buildNotification(statusText))
         } catch (e: Exception) {
-            Log.w(tag, "Could not update notification: ${e.message}")
+            AppLogger.w(tag, "Notification update failed: ${e.message}")
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        AppLogger.i(tag, "Service onDestroy")
         audioRecordManager?.stopListening()
         sttEngine?.destroy()
         ttsEngine?.shutdown()
