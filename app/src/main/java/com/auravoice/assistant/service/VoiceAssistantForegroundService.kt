@@ -135,16 +135,16 @@ class VoiceAssistantForegroundService : Service() {
 
             sttEngine = SpeechToTextEngine(
                 context = this,
-                onPartialResult = { partial ->
+                onPartialResultCallback = { partial ->
                     AppLogger.d(tag, "STT partial: $partial")
                     _currentTranscript.value = partial
                 },
-                onFinalResult = { finalQuery ->
+                onFinalResultCallback = { finalQuery ->
                     AppLogger.i(tag, "STT final: $finalQuery")
                     _currentTranscript.value = finalQuery
                     processUserQuery(finalQuery)
                 },
-                onError = { errorCode ->
+                onErrorCallback = { errorCode ->
                     AppLogger.w(tag, "STT reported error: $errorCode")
                     if (_currentState.value == AssistantState.LISTENING) {
                         _currentState.value = AssistantState.IDLE
