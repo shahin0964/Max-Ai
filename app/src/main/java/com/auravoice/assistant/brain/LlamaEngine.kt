@@ -103,7 +103,7 @@ class LlamaEngine(private val context: Context) {
 
         // Who are you / Identity
         if (lower.contains("who are you") || lower.contains("তুমি কে") || lower.contains("তোমার নাম কি")) {
-            return "আমি ম্যাক্স (Max AI), আপনার সম্পূর্ণ অফলাইন ভয়েস এআই অ্যাসিস্ট্যান্ট। আমি কোনো ইন্টারনেট বা এপিআই ছাড়াই আপনার ফোনে কাজ করি।"
+            return "আমি অরা (Aura Voice AI), আপনার সম্পূর্ণ অফলাইন পার্সোনাল এআই অ্যাসিস্ট্যান্ট। আমি কোনো ইন্টারনেট বা এপিআই ছাড়াই আপনার ফোনে কাজ করি।"
         }
 
         // Phone check

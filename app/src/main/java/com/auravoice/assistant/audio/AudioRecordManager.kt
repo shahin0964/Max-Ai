@@ -10,7 +10,8 @@ import kotlin.math.sqrt
 
 /**
  * AudioRecordManager:
- * Captures microphone audio in background with low latency and computes sound amplitude.
+ * Continuous, low-overhead mic listener providing real-time audio amplitude
+ * for the 3D Arc Reactor Orb without causing audio focus conflicts.
  */
 class AudioRecordManager(
     private val onAmplitudeChanged: (Float) -> Unit,
@@ -22,6 +23,7 @@ class AudioRecordManager(
     private val audioFormat = AudioFormat.ENCODING_PCM_16BIT
 
     private var audioRecord: AudioRecord? = null
+    @Volatile
     private var isRecording = false
     private var recordingJob: Job? = null
 
@@ -29,10 +31,10 @@ class AudioRecordManager(
     fun startListening(scope: CoroutineScope) {
         if (isRecording) return
 
-        val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        val bufferSize = maxOf(minBufferSize, 2048)
-
         try {
+            val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
+            val bufferSize = maxOf(minBufferSize, 2048)
+
             audioRecord = AudioRecord(
                 MediaRecorder.AudioSource.VOICE_RECOGNITION,
                 sampleRate,
@@ -42,7 +44,18 @@ class AudioRecordManager(
             )
 
             if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
-                Log.e(tag, "AudioRecord could not be initialized")
+                Log.w(tag, "AudioRecord could not initialize with VOICE_RECOGNITION, trying DEFAULT")
+                audioRecord = AudioRecord(
+                    MediaRecorder.AudioSource.DEFAULT,
+                    sampleRate,
+                    channelConfig,
+                    audioFormat,
+                    bufferSize
+                )
+            }
+
+            if (audioRecord?.state != AudioRecord.STATE_INITIALIZED) {
+                Log.e(tag, "AudioRecord state is not initialized. Mic may be busy.")
                 return
             }
 
@@ -54,17 +67,20 @@ class AudioRecordManager(
                 while (isRecording && isActive) {
                     val bytesRead = audioRecord?.read(buffer, 0, buffer.size) ?: -1
                     if (bytesRead > 0) {
-                        // Calculate RMS amplitude for UI soundwave
                         val amplitude = calculateRMS(buffer, bytesRead)
                         withContext(Dispatchers.Main) {
                             onAmplitudeChanged(amplitude)
                         }
                         onAudioBuffer(buffer, bytesRead)
+                    } else if (bytesRead == AudioRecord.ERROR_INVALID_OPERATION) {
+                        // Mic temporarily claimed by system, brief delay
+                        delay(100)
                     }
                 }
             }
         } catch (e: Exception) {
-            Log.e(tag, "Error starting AudioRecord: ${e.message}", e)
+            Log.e(tag, "Error in AudioRecordManager startListening: ${e.message}", e)
+            isRecording = false
         }
     }
 
@@ -76,7 +92,7 @@ class AudioRecordManager(
             audioRecord?.stop()
             audioRecord?.release()
         } catch (e: Exception) {
-            Log.e(tag, "Error stopping AudioRecord: ${e.message}", e)
+            Log.w(tag, "Error stopping AudioRecord: ${e.message}")
         }
         audioRecord = null
     }
@@ -84,12 +100,12 @@ class AudioRecordManager(
     private fun calculateRMS(buffer: ByteArray, bytesRead: Int): Float {
         var sum = 0.0
         val numSamples = bytesRead / 2
+        if (numSamples <= 0) return 0f
         for (i in 0 until numSamples) {
             val sample = (buffer[i * 2 + 1].toInt() shl 8) or (buffer[i * 2].toInt() and 0xFF)
             sum += sample * sample
         }
         val rms = sqrt(sum / numSamples)
-        // Normalize between 0.0 and 1.0
         return (rms / 32768.0).toFloat().coerceIn(0f, 1f)
     }
 

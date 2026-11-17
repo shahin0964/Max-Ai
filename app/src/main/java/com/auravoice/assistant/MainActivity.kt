@@ -13,7 +13,6 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
@@ -24,9 +23,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.auravoice.assistant.data.AppDatabase
 import com.auravoice.assistant.data.ChatMessageEntity
-import com.auravoice.assistant.data.MemoryEntity
 import com.auravoice.assistant.service.AssistantState
 import com.auravoice.assistant.service.VoiceAssistantForegroundService
 import com.auravoice.assistant.ui.MemoryViewerScreen
@@ -60,16 +57,18 @@ class MainActivity : ComponentActivity() {
         if (recordAudioGranted) {
             startAssistantService()
         } else {
-            Toast.makeText(this, "Microphone permission is required for voice assistant", Toast.LENGTH_LONG).show()
+            Toast.makeText(this, "Microphone permission needed for Aura Voice AI", Toast.LENGTH_SHORT).show()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        checkAndRequestPermissions()
+        // Request permissions safely
+        checkPermissions()
 
-        val database = (application as AuraApplication).database
+        val app = application as AuraApplication
+        val database = app.database
 
         setContent {
             AuraVoiceTheme {
@@ -85,7 +84,7 @@ class MainActivity : ComponentActivity() {
                 val response by assistantService?.currentResponse?.collectAsState()
                     ?: remember { mutableStateOf("") }
 
-                // Collect Database flows
+                // Collect database flows safely
                 val chatHistory by database.chatMessageDao().getAllMessages().collectAsState(initial = emptyList())
                 val memories by database.memoryDao().getAllMemories().collectAsState(initial = emptyList())
 
@@ -95,8 +94,8 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = selectedTab == 0,
                                 onClick = { selectedTab = 0 },
-                                icon = { Icon(Icons.Default.Mic, contentDescription = "Assistant") },
-                                label = { Text("Assistant") },
+                                icon = { Icon(Icons.Default.Mic, contentDescription = "Reactor") },
+                                label = { Text("Core") },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = NeonCyan,
                                     selectedTextColor = NeonCyan,
@@ -121,8 +120,8 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = selectedTab == 2,
                                 onClick = { selectedTab = 2 },
-                                icon = { Icon(Icons.Default.Settings, contentDescription = "Settings") },
-                                label = { Text("Settings") },
+                                icon = { Icon(Icons.Default.Settings, contentDescription = "Diagnostics") },
+                                label = { Text("System") },
                                 colors = NavigationBarItemDefaults.colors(
                                     selectedIconColor = NeonCyan,
                                     selectedTextColor = NeonCyan,
@@ -151,13 +150,16 @@ class MainActivity : ComponentActivity() {
                                     }
                                 },
                                 onManualVoiceClick = {
-                                    if (isBound) {
-                                        assistantService?.processUserQuery("অরা")
-                                    } else {
+                                    if (!isBound) {
                                         startAssistantService()
+                                    } else {
+                                        assistantService?.startListeningCycle()
                                     }
                                 },
                                 onSamplePromptClick = { prompt ->
+                                    if (!isBound) {
+                                        startAssistantService()
+                                    }
                                     assistantService?.processUserQuery(prompt)
                                 }
                             )
@@ -182,7 +184,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun checkAndRequestPermissions() {
+    private fun checkPermissions() {
         val permissions = mutableListOf(Manifest.permission.RECORD_AUDIO)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
@@ -200,29 +202,34 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun startAssistantService() {
-        val intent = Intent(this, VoiceAssistantForegroundService::class.java)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            startForegroundService(intent)
-        } else {
-            startService(intent)
+        try {
+            val intent = Intent(this, VoiceAssistantForegroundService::class.java)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                startForegroundService(intent)
+            } else {
+                startService(intent)
+            }
+            bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        } catch (e: Exception) {
+            Toast.makeText(this, "Service init note: ${e.message}", Toast.LENGTH_SHORT).show()
         }
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
     }
 
     private fun stopAssistantService() {
-        if (isBound) {
-            unbindService(serviceConnection)
-            isBound = false
+        try {
+            if (isBound) {
+                unbindService(serviceConnection)
+                isBound = false
+            }
+            val intent = Intent(this, VoiceAssistantForegroundService::class.java)
+            stopService(intent)
+        } catch (e: Exception) {
+            // Safe teardown
         }
-        val intent = Intent(this, VoiceAssistantForegroundService::class.java)
-        stopService(intent)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        if (isBound) {
-            unbindService(serviceConnection)
-            isBound = false
-        }
+        stopAssistantService()
     }
 }

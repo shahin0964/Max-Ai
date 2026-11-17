@@ -2,7 +2,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- Permissions required for Offline Voice AI Assistant -->
+    <!-- Permissions required for Aura Voice AI Assistant -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
@@ -14,6 +14,7 @@
     <application
         android:name=".AuraApplication"
         android:allowBackup="true"
+        android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
@@ -24,6 +25,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:theme="@style/Theme.AuraVoiceAI"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -32,14 +34,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Foreground Service for Always-Active Voice Listening -->
+        <!-- Continuous Background Listening Service -->
         <service
             android:name=".service.VoiceAssistantForegroundService"
             android:enabled="true"
             android:exported="false"
             android:foregroundServiceType="microphone" />
 
-        <!-- Boot Receiver to keep assistant active on phone reboot -->
+        <!-- Boot Receiver for Auto-start -->
         <receiver
             android:name=".service.BootReceiver"
             android:enabled="true"
