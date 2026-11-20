@@ -1,9 +1,0 @@
-<resources>
-    <string name="app_name">Maya</string>
-    <string name="channel_name">Maya Assistant Core</string>
-    <string name="channel_description">Active neural assistant and automation pipeline for Maya</string>
-    <string name="notification_title">Maya is active</string>
-    <string name="notification_listening">Listening for "Hey Maya" or voice commands...</string>
-    <string name="notification_thinking">Thinking...</string>
-    <string name="notification_speaking">Speaking...</string>
-</resources>
