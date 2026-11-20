@@ -17,6 +17,13 @@ class AppColors {
   static const Color electricBlue = Color(0xFF2563EB);
   static const Color goldPro = Color(0xFFFBBF24);
 
+  // Aliases for themes and components
+  static const Color primary = neonCyan;
+  static const Color accent = neonPurple;
+  static const Color success = Color(0xFF10B981);
+  static const Color warning = goldPro;
+  static const Color offline = Color(0xFF64748B);
+
   // Text colors
   static const Color textPrimary = Color(0xFFFFFFFF);
   static const Color textSecondary = Color(0xFF94A3B8);

@@ -65,10 +65,6 @@ class _SplashScreenState extends State<SplashScreen>
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: AppColors.neonPurple.withOpacity(0.18),
-                filter: const ColorFilter.mode(
-                  Colors.transparent,
-                  BlendMode.src,
-                ),
               ),
             ),
           ),
@@ -89,10 +85,10 @@ class _SplashScreenState extends State<SplashScreen>
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const GradientLogo(size: 110),
-                const SizedBox(height: 28),
-                const Text(
+              children: const [
+                GradientLogo(size: 110),
+                SizedBox(height: 28),
+                Text(
                   'Max AI',
                   style: TextStyle(
                     color: AppColors.textPrimary,
@@ -101,8 +97,8 @@ class _SplashScreenState extends State<SplashScreen>
                     letterSpacing: 0.8,
                   ),
                 ),
-                const SizedBox(height: 10),
-                const Text(
+                SizedBox(height: 10),
+                Text(
                   'Smarter. Simpler. Always with you.',
                   style: TextStyle(
                     color: AppColors.textSecondary,
