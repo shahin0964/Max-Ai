@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/chat_message.dart';
 import '../../core/constants/app_strings.dart';
+import 'tool_registry_service.dart';
 
 class GeminiApiService {
   final String apiKey;
@@ -9,11 +10,11 @@ class GeminiApiService {
 
   GeminiApiService({
     required this.apiKey,
-    this.model = 'gemini-1.5-flash',
+    this.model = 'gemini-3.8-flash',
   });
 
-  /// Sends a token-optimized chat request to Google Gemini API
-  /// Uses a sliding window of recent messages to prevent token explosion.
+  /// Sends a token-optimized chat request to Google Gemini API (Gemini 3.8 Flash)
+  /// Includes full function calling schemas for all 19 extracted tools.
   Future<String> sendMessage({
     required String prompt,
     required List<ChatMessage> history,
@@ -59,9 +60,14 @@ class GeminiApiService {
         'parts': [{'text': AppStrings.defaultSystemPrompt}],
       },
       'contents': contents,
+      'tools': [
+        {
+          'function_declarations': ToolRegistryService.toolsSchema,
+        }
+      ],
       'generationConfig': {
         'temperature': 0.7,
-        'maxOutputTokens': 1024,
+        'maxOutputTokens': 2048,
       },
     };
 
@@ -78,7 +84,19 @@ class GeminiApiService {
         if (candidates != null && candidates.isNotEmpty) {
           final content = candidates[0]['content'];
           final parts = content['parts'] as List<dynamic>;
-          return parts.map((p) => p['text']).join('');
+
+          final textParts = <String>[];
+          for (final part in parts) {
+            if (part.containsKey('text')) {
+              textParts.add(part['text']);
+            } else if (part.containsKey('functionCall')) {
+              final func = part['functionCall'];
+              final name = func['name'];
+              final args = func['args'] ?? {};
+              textParts.add('⚡ [Tool Call]: $name(${jsonEncode(args)})');
+            }
+          }
+          return textParts.isNotEmpty ? textParts.join('\n') : 'Command acknowledged.';
         }
         return 'No response generated.';
       } else if (response.statusCode == 429) {

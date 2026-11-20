@@ -47,16 +47,22 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: Max AI Release v1.0.0
+          tag_name: v1.0.1
+          name: Max AI Release v1.0.1 (Gemini 3.8 Flash + 19 Extracted Tools)
           body: |
-            ### 🚀 Max AI Android Release v1.0.0
+            ### 🚀 Max AI Android Release v1.0.1
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
-            - **Features:** 
-              - Futuristic Neon Dark Glassmorphism UI (Splash, Dashboard, Chat, Voice Mode, Settings)
-              - Hybrid Engine (Online Gemini + Offline Local Task Manager)
-              - Token Saver Architecture
+            - **Model:** Google Gemini 3.8 Flash default
+            - **Extracted Automation Tools (19 Tools):**
+              - Termux Bash Command Execution (`termux_run`)
+              - WhatsApp Send & Read Chat (`whatsapp_send_message`, `whatsapp_read_chat`)
+              - Screen Automation (`tap_text`, `tap_coordinates`, `swipe_screen`, `read_screen_text`)
+              - Built-in App Macros (`chatgpt image`, `gemini image`, `gemini video`)
+              - Hardware Control (`set_torch`, `set_volume`, `make_call`, `send_sms`)
+              - Media & Web (`play_youtube`, `spotify_play`, `get_weather`, `web_search`)
+              - Continuous Memory (`save_memory`, `recall_memory`)
+            - **Design:** Futuristic Neon Dark Glassmorphism UI
             
             📥 **Download:** Tap `Max-AI-release.apk` below to install directly on your Android phone!
           files: Max-AI-release.apk

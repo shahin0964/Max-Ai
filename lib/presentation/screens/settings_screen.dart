@@ -13,6 +13,13 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   late TextEditingController _apiKeyController;
 
+  final List<String> _availableModels = [
+    'gemini-3.8-flash',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +35,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final chatProvider = context.watch<ChatProvider>();
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -61,7 +70,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             child: Row(
               children: [
-                // Profile Avatar Circle
                 Container(
                   width: 52,
                   height: 52,
@@ -113,7 +121,86 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 24),
 
-          // App Preferences Section Header
+          // AI Engine & Model Settings Header
+          const Padding(
+            padding: EdgeInsets.only(left: 4, bottom: 8),
+            child: Text(
+              'AI Engine & Model',
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ),
+
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceCard,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.surfaceLight.withOpacity(0.5)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Selected Model',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.neonCyan.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: AppColors.neonCyan.withOpacity(0.4)),
+                      ),
+                      child: Text(
+                        chatProvider.selectedModel,
+                        style: const TextStyle(
+                          color: AppColors.neonCyan,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: chatProvider.selectedModel,
+                  dropdownColor: AppColors.surfaceCard,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
+                  decoration: InputDecoration(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: const BorderSide(color: AppColors.surfaceLight),
+                    ),
+                  ),
+                  items: _availableModels.map((m) {
+                    return DropdownMenuItem(
+                      value: m,
+                      child: Text(m),
+                    );
+                  }).toList(),
+                  onChanged: (val) {
+                    if (val != null) {
+                      chatProvider.setModel(val);
+                    }
+                  },
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 24),
+
+          // App Preferences Header
           const Padding(
             padding: EdgeInsets.only(left: 4, bottom: 8),
             child: Text(
@@ -127,7 +214,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
 
-          // Preferences List Group
           Container(
             decoration: BoxDecoration(
               color: AppColors.surfaceCard,
@@ -144,7 +230,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _divider(),
                 _prefTile(Icons.sentiment_satisfied_alt_rounded, 'Personality', 'Friendly'),
                 _divider(),
-                _prefTile(Icons.psychology_outlined, 'Memory & Data', ''),
+                _prefTile(Icons.build_circle_outlined, 'Extracted Tools', '19 Tools Active'),
               ],
             ),
           ),
