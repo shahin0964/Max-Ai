@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 import '../../data/models/chat_message.dart';
@@ -36,6 +37,7 @@ class ChatProvider extends ChangeNotifier {
   bool _isOnline = true;
   String _apiKey = '';
   String _groqApiKey = '';
+  String _voiceModel = 'maya';
   String _activeModel = 'gemini-3.8-flash';
   String _userName = 'Md Shahin';
   String _userEmail = 'shahin@example.com';
@@ -56,7 +58,9 @@ class ChatProvider extends ChangeNotifier {
   bool get isOnline => _isOnline;
   String get apiKey => _apiKey;
   String get groqApiKey => _groqApiKey;
+  String get activeModel => _activeModel;
   String get selectedModel => _activeModel;
+  String get voiceModel => _voiceModel;
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get language => _language;
@@ -152,6 +156,20 @@ class ChatProvider extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('voice_engine', val);
     notifyListeners();
+  }
+
+  Future<void> setVoiceModel(String val) async {
+    _voiceModel = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_voice_model', val);
+    notifyListeners();
+  }
+
+  Future<void> previewVoice(String val) async {
+    try {
+      const audioChannel = MethodChannel('com.max.ai/audio');
+      await audioChannel.invokeMethod('playVoiceModel', {'voice': val});
+    } catch (_) {}
   }
 
   Future<void> setActiveWallpaper(String val) async {
