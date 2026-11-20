@@ -61,27 +61,29 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.3
-          name: Max AI Release v1.0.3 (Signed APK + Maya VoiceOrb UI + Audio & Gemini 503 Fixes)
+          tag_name: v1.0.4
+          name: Max AI Release v1.0.4 (Signed APK + Messenger UI + Clean Voice Home + Gemini 3.8 Flash Exclusive)
           body: |
-            ### 🚀 Max AI Android Release v1.0.3 - Official Signed APK
+            ### 🚀 Max AI Android Release v1.0.4 - Official Signed APK
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
             - **Signing:** Official Release Keystore (`KEYSTORE_BASE64` signed APK)
             
-            ### 💎 UI & Feature Upgrades in v1.0.3:
-            - 🔮 **Exact Maya AI UI Engine Replacement:**
-              - Complete color system (`MayaBackground`, `MayaSurface`, `MayaAccentCyan`, `MayaPrimary`, `MayaAccentPink`, `TerminalGreen`)
-              - Centerpiece **`VoiceOrb`** with authentic multi-layer concentric ripple rings & breathing states (Idle, Listening, Thinking, Speaking)
-              - Header with `🟢 Active • Voice Guardian Ready` security status
-              - 6 Interactive Device Tiles (`Flashlight`, `Media Volume`, `Termux Reel`, `WhatsApp`, `Vision AI`, `Memory Vault`)
-              - 5-Tab Navigation (`Voice`, `Chat`, `Tools`, `Terminal`, `Settings`)
-            - 🔊 **Voice Audio Previews Working 100%:**
-              - Extracted authentic `.ogg` voice models (`maya_Aoede.ogg`, `friday_Aoede.ogg`, `venom_Fenrir.ogg`)
-              - Native Android `MediaPlayer` integration with TextToSpeech fallback
-            - 🛡️ **Gemini 503 & High Demand Auto-Recovery:**
-              - Automatic resilience & fallback to `gemini-2.5-flash` or `gemini-2.0-flash`
-              - "Test Connection & Latency" button guaranteed to test and report successfully without getting stuck
+            ### 💎 Key Updates in v1.0.4:
+            - 🧹 **Clean & Focused Voice Home Screen:**
+              - Removed duplicate tools & automations 6-tile grid from Home screen
+              - Streamlined Bottom Navigation Bar to clean 3 tabs: **Voice**, **Chat**, **Settings**
+              - Full Tools (19 Active) & Termux Terminal Reel remain fully accessible via Drawer and top AppBar
+              - VoiceOrb centerpiece with animated status text & soundwave visualizer
+            - 💬 **Personal Messenger Chat Experience:**
+              - Full Messenger-style chat capsules with rounded pill borders
+              - User message pills on the right with timestamps and double checkmarks (`✓✓`)
+              - AI assistant pills on the left with avatar `M`
+              - Real-time in-chat typing indicator pill with 3 animated bouncing dots (`• • •`) replacing the bulky bottom bar
+            - ⚡ **Exclusively Google Gemini 3.8 Flash:**
+              - Model locked strictly to `gemini-3.8-flash` (removed all deprecated models)
+              - Smart auto-retry for 503 high-demand spikes
+              - Smooth, friendly connection testing in Settings
             
             📥 **Download Signed APK:** Tap `Max-AI-signed-release.apk` below to download and install!
           files: Max-AI-signed-release.apk

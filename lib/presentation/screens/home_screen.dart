@@ -349,99 +349,85 @@ class _HomeScreenState extends State<HomeScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 28),
 
-                  // Tools & Automations Device Tiles (Matching ToolsScreen in Maya APK)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Tools & Automations',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                  // Futuristic AI Engine & Status Capsule
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.mayaSurface,
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: AppColors.mayaBorder),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: const BoxDecoration(
+                                    color: AppColors.online,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                const Text(
+                                  'Gemini 3.8 Flash High Turbo',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 13,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: AppColors.mayaAccentCyan.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: AppColors.mayaAccentCyan.withOpacity(0.3)),
+                              ),
+                              child: const Text(
+                                'ACTIVE',
+                                style: TextStyle(
+                                  color: AppColors.mayaAccentCyan,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                      ),
-                      GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen())),
-                        child: const Text(
-                          'See 19 Tools →',
-                          style: TextStyle(color: AppColors.mayaAccentCyan, fontSize: 12, fontWeight: FontWeight.bold),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: const [
+                            Icon(Icons.security_rounded, color: AppColors.mayaAccentCyan, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              'Voice Guardian Biometric Lock Active',
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Grid of Device Tiles
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.4,
-                    children: [
-                      // Torch Tile
-                      _deviceTile(
-                        icon: _isTorchOn ? Icons.flashlight_on_rounded : Icons.flashlight_off_rounded,
-                        iconColor: _isTorchOn ? Colors.amberAccent : AppColors.mayaTextSecondary,
-                        title: 'Flashlight',
-                        subtitle: _isTorchOn ? 'ON' : 'OFF',
-                        isActive: _isTorchOn,
-                        onTap: _toggleTorch,
-                      ),
-                      // Media Volume Tile
-                      _deviceTile(
-                        icon: Icons.volume_up_rounded,
-                        iconColor: AppColors.mayaAccentCyan,
-                        title: 'Media Volume',
-                        subtitle: '$_volumeLevel%',
-                        isActive: true,
-                        onTap: () {
-                          final nextVol = _volumeLevel >= 100 ? 25 : _volumeLevel + 25;
-                          _setVolume(nextVol);
-                        },
-                      ),
-                      // Termux Runner Tile
-                      _deviceTile(
-                        icon: Icons.terminal_rounded,
-                        iconColor: AppColors.terminalGreen,
-                        title: 'Termux Reel',
-                        subtitle: 'Live Console',
-                        isActive: true,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen())),
-                      ),
-                      // WhatsApp Direct Tile
-                      _deviceTile(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        iconColor: const Color(0xFF25D366),
-                        title: 'WhatsApp',
-                        subtitle: 'Send Message',
-                        isActive: true,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen())),
-                      ),
-                      // Vision Scanner Tile
-                      _deviceTile(
-                        icon: Icons.document_scanner_rounded,
-                        iconColor: AppColors.mayaAccentPink,
-                        title: 'Vision AI',
-                        subtitle: 'Gemini Scanner',
-                        isActive: true,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionScreen())),
-                      ),
-                      // Memory Vault Tile
-                      _deviceTile(
-                        icon: Icons.psychology_rounded,
-                        iconColor: AppColors.mayaPrimary,
-                        title: 'Memory Vault',
-                        subtitle: 'Personal Facts',
-                        isActive: true,
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MemoryScreen())),
-                      ),
-                    ],
+                        const SizedBox(height: 4),
+                        Row(
+                          children: const [
+                            Icon(Icons.terminal_rounded, color: AppColors.terminalGreen, size: 14),
+                            SizedBox(width: 6),
+                            Text(
+                              'Termux Rootless Bridge & 19 Tools Ready',
+                              style: TextStyle(color: AppColors.textSecondary, fontSize: 11.5),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
 
                   const SizedBox(height: 24),
@@ -452,7 +438,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // Maya APK 5-Tab Bottom Navigation Bar
+      // Clean 3-Tab Bottom Navigation Bar (Voice, Chat, Settings)
       bottomNavigationBar: Container(
         height: 68,
         decoration: BoxDecoration(
@@ -466,71 +452,9 @@ class _HomeScreenState extends State<HomeScreen> {
             _navTab(Icons.chat_bubble_outline_rounded, 'Chat', 1, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
             }),
-            _navTab(Icons.grid_view_rounded, 'Tools', 2, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen()));
-            }),
-            _navTab(Icons.terminal_rounded, 'Terminal', 3, () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen()));
-            }),
-            _navTab(Icons.settings_outlined, 'Settings', 4, () {
+            _navTab(Icons.settings_outlined, 'Settings', 2, () {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
             }),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _deviceTile({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: AppColors.mayaSurface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isActive ? AppColors.mayaBorder : AppColors.mayaBorder.withOpacity(0.5),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Icon(icon, color: iconColor, size: 24),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: BoxDecoration(
-                    color: isActive ? AppColors.online : AppColors.textMuted,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
-                ),
-              ],
-            ),
           ],
         ),
       ),

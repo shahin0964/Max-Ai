@@ -35,7 +35,7 @@ class ChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isOnline = true;
   String _apiKey = '';
-  String _selectedModel = 'gemini-3.8-flash';
+  static const String fixedModel = 'gemini-3.8-flash';
   String _userName = 'Md Shahin';
   String _userEmail = 'shahin@example.com';
   String _language = 'English';
@@ -49,7 +49,7 @@ class ChatProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isOnline => _isOnline;
   String get apiKey => _apiKey;
-  String get selectedModel => _selectedModel;
+  String get selectedModel => fixedModel;
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get language => _language;
@@ -66,7 +66,6 @@ class ChatProvider extends ChangeNotifier {
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString('gemini_api_key') ?? '';
-    _selectedModel = prefs.getString('gemini_model') ?? 'gemini-3.8-flash';
     _userName = prefs.getString('user_name') ?? 'Md Shahin';
     _userEmail = prefs.getString('user_email') ?? 'shahin@example.com';
     _language = prefs.getString('app_language') ?? 'English';
@@ -87,12 +86,11 @@ class ChatProvider extends ChangeNotifier {
   void _addWelcomeMessage() {
     String greeting;
     if (_language == 'বাংলা') {
-      greeting = 'স্বাগতম! আমি Max AI (ম্যাক্স এআই), Gemini 3.8 Flash দ্বারা চালিত। ফোনে টার্মাক্স, হোয়াটসঅ্যাপ ও ১৯টি অটোমেশন টুল সক্রিয় আছে। আমাকে কী করতে হবে বলুন!';
+      greeting = 'স্বাগতম! আমি Max AI, Google Gemini 3.8 Flash দ্বারা চালিত। আমাকে কী করতে হবে বলুন!';
     } else if (_language == 'हिन्दी') {
-      greeting = 'नमस्ते! मैं Max AI हूँ, Gemini 3.8 Flash से संचालित। 19 ऑटोमेशन टूल्स और टर्मक्स सक्षम हैं। बताइए मैं आपकी क्या मदद करूँ?';
+      greeting = 'नमस्ते! मैं Max AI हूँ, Google Gemini 3.8 Flash से संचालित। बताइए मैं आपकी क्या मदद करूँ?';
     } else {
-      greeting = 'Hello, Shahin! I am Max AI, powered by $_selectedModel. '
-                 '19 autonomous automation tools (Termux, WhatsApp, Hardware Controls, Vision, Memory) are 100% active. What would you like to do today?';
+      greeting = 'Hello! I am Max AI, powered exclusively by Gemini 3.8 Flash. How can I assist you today?';
     }
 
     _messages.add(
@@ -111,13 +109,6 @@ class ChatProvider extends ChangeNotifier {
     _apiKey = key.trim();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('gemini_api_key', _apiKey);
-    notifyListeners();
-  }
-
-  Future<void> setModel(String model) async {
-    _selectedModel = model.trim();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('gemini_model', _selectedModel);
     notifyListeners();
   }
 
@@ -175,10 +166,9 @@ class ChatProvider extends ChangeNotifier {
     return '''
 You are MAX AI (ম্যাক্স এআই), an extraordinarily capable on-device AI voice agent and autonomous assistant.
 User's Name: $_userName.
-Language Preference: $_language.
-Persona Style: $_persona (Maya: Warm, capable and autonomous; Friday: Tactical, ultra-concise; Venom: Bold, protective).
-Model: $_selectedModel.
-Always respond naturally in the user's preferred language ($_language).
+Language: $_language.
+Persona Style: $_persona.
+Engine: Google Gemini 3.8 Flash.
 Available Tools: All 19 registered automation tools (termux_run, whatsapp_send_message, whatsapp_read_chat, make_call, send_sms, open_app, tap_text, tap_coordinates, read_screen_text, swipe_screen, set_torch, set_volume, play_youtube, spotify_play, get_weather, web_search, save_memory, recall_memory, run_macro).
 When user asks for actions or device manipulation, execute the appropriate tool function.
 ''';
@@ -241,7 +231,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
         } else {
           final geminiService = GeminiApiService(
             apiKey: _apiKey,
-            model: _selectedModel,
+            model: fixedModel,
           );
           final response = await geminiService.sendMessage(
             prompt: text,
@@ -250,7 +240,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
           );
 
           _lastTokenStats = TokenStats(
-            model: _selectedModel,
+            model: fixedModel,
             inputTokens: response.inputTokens,
             outputTokens: response.outputTokens,
             cachedTokens: response.cachedTokens,
@@ -262,10 +252,17 @@ When user asks for actions or device manipulation, execute the appropriate tool 
         }
       }
     } catch (e) {
+      final errStr = e.toString().replaceAll("Exception: ", "");
+      String friendlyMsg = errStr;
+      if (errStr.contains('503') || errStr.toLowerCase().contains('high demand')) {
+        friendlyMsg = 'Gemini 3.8 Flash is experiencing high server demand right now. Spikes are temporary—please try again in a moment!';
+      } else if (errStr.toLowerCase().contains('api key')) {
+        friendlyMsg = 'Please verify and save your Gemini API Key in Settings.';
+      }
       _messages.add(
         ChatMessage(
           id: _uuid.v4(),
-          text: 'Error: ${e.toString().replaceAll("Exception: ", "")}',
+          text: friendlyMsg,
           sender: MessageSender.system,
           timestamp: DateTime.now(),
         ),
@@ -283,7 +280,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
     try {
       final geminiService = GeminiApiService(
         apiKey: _apiKey,
-        model: _selectedModel,
+        model: fixedModel,
       );
 
       final result = await geminiService.analyzeImage(
@@ -292,7 +289,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
       );
 
       _lastTokenStats = TokenStats(
-        model: _selectedModel,
+        model: fixedModel,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         cachedTokens: 0,
@@ -302,7 +299,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
 
       _addReply('🖼️ [Vision Analysis Result]:\n\n${result.text}', isOffline: false);
     } catch (e) {
-      _addReply('⚠️ Vision Analysis Error: ${e.toString().replaceAll("Exception: ", "")}', isOffline: false);
+      _addReply('⚠️ Vision Error: ${e.toString().replaceAll("Exception: ", "")}', isOffline: false);
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -28,28 +28,26 @@ class GeminiResponseResult {
 
 class GeminiApiService {
   final String apiKey;
-  final String model;
+  static const String fixedModel = 'gemini-3.8-flash';
   final ToolRegistryService _toolRegistry = ToolRegistryService();
 
   GeminiApiService({
     required this.apiKey,
-    this.model = 'gemini-3.8-flash',
+    String? model,
   });
 
-  /// Sends a token-optimized chat request to Google Gemini API.
-  /// Includes automatic resilience: if 503 (High Demand) or 429 occurs,
-  /// it automatically falls back to gemini-2.5-flash or gemini-2.0-flash!
+  /// Sends a token-optimized chat request to Google Gemini 3.8 Flash.
+  /// If 503 (High Demand spike) occurs, automatically retries with Gemini 3.8 Flash.
   Future<GeminiResponseResult> sendMessage({
     required String prompt,
     required List<ChatMessage> history,
     String? systemPromptOverride,
-    String? overrideModel,
+    int retryCount = 0,
   }) async {
     if (apiKey.trim().isEmpty) {
       throw Exception('API Key is missing. Please set your Gemini API key in Settings.');
     }
 
-    final targetModel = overrideModel ?? model;
     final stopwatch = Stopwatch()..start();
 
     // Prepare payload
@@ -95,7 +93,7 @@ class GeminiApiService {
 
     try {
       final endpoint = Uri.parse(
-        'https://generativelanguage.googleapis.com/v1beta/models/$targetModel:generateContent?key=$apiKey',
+        'https://generativelanguage.googleapis.com/v1beta/models/$fixedModel:generateContent?key=$apiKey',
       );
 
       final response = await http.post(
@@ -108,18 +106,17 @@ class GeminiApiService {
       final elapsedSec = stopwatch.elapsedMilliseconds / 1000.0;
 
       if (response.statusCode == 200) {
-        return _parseSuccessResponse(response.body, elapsedSec, targetModel);
+        return _parseSuccessResponse(response.body, elapsedSec, fixedModel);
       } 
-      // 503 High Demand or 429 / 404 -> Automatic Fallback to stable Gemini 2.5 / 2.0 Flash!
-      else if ((response.statusCode == 503 || response.statusCode == 429 || response.statusCode == 404) &&
-               targetModel != 'gemini-2.5-flash' &&
-               targetModel != 'gemini-1.5-flash') {
-        final fallbackModel = targetModel == 'gemini-3.8-flash' ? 'gemini-2.5-flash' : 'gemini-1.5-flash';
+      // 503 High Demand temporary spike -> retry up to 3 times with progressive delays
+      else if (response.statusCode == 503 && retryCount < 3) {
+        final waitMs = 1200 + (retryCount * 1000);
+        await Future.delayed(Duration(milliseconds: waitMs));
         return await sendMessage(
           prompt: prompt,
           history: history,
           systemPromptOverride: systemPromptOverride,
-          overrideModel: fallbackModel,
+          retryCount: retryCount + 1,
         );
       } else {
         final error = jsonDecode(response.body);
@@ -127,16 +124,14 @@ class GeminiApiService {
         throw Exception('Gemini Error (${response.statusCode}): $message');
       }
     } catch (e) {
-      // If network or parsing error on 3.8, try once with 2.5 flash
-      if (overrideModel == null && targetModel == 'gemini-3.8-flash') {
-        try {
-          return await sendMessage(
-            prompt: prompt,
-            history: history,
-            systemPromptOverride: systemPromptOverride,
-            overrideModel: 'gemini-2.5-flash',
-          );
-        } catch (_) {}
+      if (retryCount < 2 && e.toString().contains('503')) {
+        await Future.delayed(const Duration(milliseconds: 1500));
+        return await sendMessage(
+          prompt: prompt,
+          history: history,
+          systemPromptOverride: systemPromptOverride,
+          retryCount: retryCount + 1,
+        );
       }
       rethrow;
     }
@@ -191,21 +186,19 @@ class GeminiApiService {
     );
   }
 
-  /// Multimodal Vision: Analyze image with prompt using Gemini 3.8 Flash with auto-fallback
+  /// Multimodal Vision: Analyze image with prompt using Gemini 3.8 Flash
   Future<GeminiResponseResult> analyzeImage({
     required String prompt,
     required String base64Image,
     String mimeType = 'image/jpeg',
-    String? overrideModel,
   }) async {
     if (apiKey.trim().isEmpty) {
       throw Exception('API Key is missing. Please set your Gemini API key in Settings.');
     }
 
-    final targetModel = overrideModel ?? model;
     final stopwatch = Stopwatch()..start();
     final endpoint = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$targetModel:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/$fixedModel:generateContent?key=$apiKey',
     );
 
     final payload = {
@@ -255,17 +248,10 @@ class GeminiApiService {
             inputTokens: inputTokens,
             outputTokens: outputTokens,
             durationSeconds: elapsedSec,
-            usedModel: targetModel,
+            usedModel: fixedModel,
           );
         }
-        return GeminiResponseResult(text: 'No visual insights generated.', durationSeconds: elapsedSec, usedModel: targetModel);
-      } else if (response.statusCode == 503 && targetModel != 'gemini-2.5-flash') {
-        return await analyzeImage(
-          prompt: prompt,
-          base64Image: base64Image,
-          mimeType: mimeType,
-          overrideModel: 'gemini-2.5-flash',
-        );
+        return GeminiResponseResult(text: 'No visual insights generated.', durationSeconds: elapsedSec, usedModel: fixedModel);
       } else {
         final error = jsonDecode(response.body);
         final message = error['error']?['message'] ?? 'Vision analysis failed';
