@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../../data/models/chat_message.dart';
@@ -16,16 +17,19 @@ class MessageBubble extends StatelessWidget {
     if (isSystem) {
       return Center(
         child: Container(
-          margin: const EdgeInsets.symmetric(vertical: 8),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 20),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
           decoration: BoxDecoration(
-            color: AppColors.mayaSurface,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.mayaBorder),
+            boxShadow: const [
+              BoxShadow(color: Color(0x103060A0), blurRadius: 8, offset: Offset(0, 2)),
+            ],
+            border: Border.all(color: const Color(0xFFFDE68A)),
           ),
           child: Text(
             message.text,
-            style: const TextStyle(color: AppColors.warning, fontSize: 12),
+            style: const TextStyle(color: Color(0xFFD97706), fontSize: 12, fontWeight: FontWeight.w500),
             textAlign: TextAlign.center,
           ),
         ),
@@ -33,42 +37,18 @@ class MessageBubble extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 14),
       child: Row(
         mainAxisAlignment: isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // AI Avatar next to assistant pill
-          if (!isUser) ...[
-            Container(
-              width: 28,
-              height: 28,
-              margin: const EdgeInsets.only(bottom: 2),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppColors.logoGradient,
-              ),
-              child: const Center(
-                child: Text(
-                  'M',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-
-          // Message Pill
+          // Message Pill matching frame_013.jpg
           Flexible(
             child: Container(
               constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.76,
+                maxWidth: MediaQuery.of(context).size.width * 0.78,
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               decoration: BoxDecoration(
                 gradient: isUser
                     ? const LinearGradient(
@@ -77,21 +57,18 @@ class MessageBubble extends StatelessWidget {
                         end: Alignment.bottomRight,
                       )
                     : null,
-                color: isUser ? null : AppColors.mayaSurface,
+                color: isUser ? null : Colors.white,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(20),
-                  topRight: const Radius.circular(20),
-                  bottomLeft: Radius.circular(isUser ? 20 : 4),
-                  bottomRight: Radius.circular(isUser ? 4 : 20),
+                  topLeft: const Radius.circular(22),
+                  topRight: const Radius.circular(22),
+                  bottomLeft: Radius.circular(isUser ? 22 : 6),
+                  bottomRight: Radius.circular(isUser ? 6 : 22),
                 ),
-                border: isUser
-                    ? null
-                    : Border.all(color: AppColors.mayaBorder),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    color: const Color(0x123060A0),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
                   ),
                 ],
               ),
@@ -101,30 +78,39 @@ class MessageBubble extends StatelessWidget {
                 children: [
                   Text(
                     message.text,
-                    style: const TextStyle(
-                      color: Colors.white,
+                    style: TextStyle(
+                      color: isUser ? Colors.white : const Color(0xFF0F172A),
                       fontSize: 14.5,
-                      height: 1.35,
+                      height: 1.38,
                     ),
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (message.isOffline) ...[
-                        const Icon(Icons.flash_on, size: 11, color: AppColors.warning),
-                        const SizedBox(width: 3),
-                        const Text(
-                          'Offline',
-                          style: TextStyle(fontSize: 10, color: AppColors.warning),
+                      if (!isUser) ...[
+                        GestureDetector(
+                          onTap: () {
+                            Clipboard.setData(ClipboardData(text: message.text));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(content: Text('Copied to clipboard! 📋')),
+                            );
+                          },
+                          child: Row(
+                            children: const [
+                              Icon(Icons.copy_rounded, size: 12, color: Color(0xFF64748B)),
+                              SizedBox(width: 3),
+                              Text('Copy', style: TextStyle(fontSize: 11, color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+                            ],
+                          ),
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 8),
                       ],
                       Text(
                         DateFormat('h:mm a').format(message.timestamp),
                         style: TextStyle(
                           fontSize: 10,
-                          color: isUser ? Colors.white70 : AppColors.textMuted,
+                          color: isUser ? Colors.white70 : const Color(0xFF94A3B8),
                         ),
                       ),
                       if (isUser) ...[

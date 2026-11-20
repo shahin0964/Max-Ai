@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/app_colors.dart';
-import 'gradient_logo.dart';
+import '../widgets/gradient_logo.dart';
 import '../screens/chat_screen.dart';
 import '../screens/vision_screen.dart';
 import '../screens/memory_screen.dart';
@@ -18,39 +18,57 @@ class CustomDrawer extends StatelessWidget {
     required this.onSelectIndex,
   });
 
-  void _showProModal(BuildContext context) {
-    showDialog(
+  void _showFeatureSheet(BuildContext context, String title, String description, IconData icon) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0E142B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: AppColors.goldPro),
-        ),
-        title: Row(
-          children: const [
-            Icon(Icons.workspace_premium_rounded, color: AppColors.goldPro, size: 28),
-            SizedBox(width: 8),
-            Text('Max AI Pro Active', style: TextStyle(color: AppColors.goldPro, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('👑 Unlocked Features:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text('• Gemini 3.8 Flash High Turbo Engine\n• 19 Autonomous Tools & Termux Rootless Bridge\n• Multi-step App Macros Execution\n• Voice Guardian Speaker Biometrics\n• Infinite Long-Term Memory Vault',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEBF3FB),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
+                ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: const TextStyle(color: Color(0xFF0F172A), fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Text('100% Active & Unlocked', style: TextStyle(color: Color(0xFF10B981), fontSize: 12, fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Text(description, style: const TextStyle(color: Color(0xFF475569), fontSize: 13.5, height: 1.45)),
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2563EB),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Open in Max AI', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ),
           ],
         ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.goldPro, foregroundColor: Colors.black),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
       ),
     );
   }
@@ -58,35 +76,58 @@ class CustomDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: const Color(0xFF0A1024),
+      backgroundColor: const Color(0xFFEDF4FC),
       child: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Drawer Header
+            // Drawer Header matching frame_014.jpg
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
               child: Row(
                 children: [
-                  const GradientLogo(size: 44),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(16),
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF2563EB).withOpacity(0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'M',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 24),
+                      ),
+                    ),
+                  ),
                   const SizedBox(width: 14),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        'Max AI',
+                        'Maya',
                         style: TextStyle(
-                          color: AppColors.textPrimary,
+                          color: Color(0xFF0F172A),
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       SizedBox(height: 2),
                       Text(
-                        'Smarter. Simpler. Always with you.',
+                        'by The Hunter AI',
                         style: TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 11,
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -94,136 +135,74 @@ class CustomDrawer extends StatelessWidget {
                 ],
               ),
             ),
-            const Divider(color: AppColors.surfaceLight, height: 1),
+            const Divider(color: Color(0xFFCBD5E1), height: 1),
 
-            // Navigation Items - 100% Functional!
-            const SizedBox(height: 12),
-            _drawerItem(
-              icon: Icons.home_rounded,
-              title: 'Home',
-              isSelected: selectedIndex == 0,
-              onTap: () {
-                Navigator.pop(context);
-                onSelectIndex(0);
-              },
-            ),
-            _drawerItem(
-              icon: Icons.chat_bubble_rounded,
-              title: 'Chat',
-              isSelected: selectedIndex == 1,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
-              },
-            ),
-            _drawerItem(
-              icon: Icons.camera_alt_rounded,
-              title: 'Vision',
-              isSelected: false,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionScreen()));
-              },
-            ),
-            _drawerItem(
-              icon: Icons.grid_view_rounded,
-              title: 'Tools (19 Active)',
-              isSelected: selectedIndex == 2,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen()));
-              },
-            ),
-            _drawerItem(
-              icon: Icons.psychology_rounded,
-              title: 'Memory Vault',
-              isSelected: false,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const MemoryScreen()));
-              },
-            ),
-            _drawerItem(
-              icon: Icons.terminal_rounded,
-              title: 'Termux Terminal Reel',
-              isSelected: false,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen()));
-              },
-            ),
-            _drawerItem(
-              icon: Icons.settings_rounded,
-              title: 'Settings',
-              isSelected: selectedIndex == 3,
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-              },
+            // Scrollable Navigation List matching frame_014.jpg
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                children: [
+                  _sectionHeader('HOME'),
+                  _drawerClayItem(Icons.home_rounded, 'Home', () {
+                    Navigator.pop(context);
+                    onSelectIndex(0);
+                  }),
+                  _drawerClayItem(Icons.home_outlined, 'Maya Home', () {
+                    Navigator.pop(context);
+                    onSelectIndex(0);
+                  }),
+
+                  const SizedBox(height: 16),
+                  _sectionHeader('KAAM-KAAJ'),
+                  _drawerClayItem(Icons.trending_up_rounded, 'Markets', () {
+                    Navigator.pop(context);
+                    _showFeatureSheet(context, 'Markets & Live Intelligence', 'Track live stock indices, crypto rates, and market forecasts powered by Gemini.', Icons.trending_up_rounded);
+                  }),
+                  _drawerClayItem(Icons.storefront_rounded, 'Marketing', () {
+                    Navigator.pop(context);
+                    _showFeatureSheet(context, 'Autonomous Marketing', 'Generate viral copy, SEO tags, email campaigns, and product descriptions.', Icons.storefront_rounded);
+                  }),
+                  _drawerClayItem(Icons.description_rounded, 'Documents', () {
+                    Navigator.pop(context);
+                    _showFeatureSheet(context, 'Document & PDF Intelligence', 'Read, extract, summarize, and translate PDFs, DOCX, and text documents.', Icons.description_rounded);
+                  }),
+                  _drawerClayItem(Icons.photo_library_rounded, 'Meri photos', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionScreen()));
+                  }),
+                  _drawerClayItem(Icons.code_rounded, 'Website / Coding', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen()));
+                  }),
+                  _drawerClayItem(Icons.terminal_rounded, 'Terminal', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen()));
+                  }),
+                  _drawerClayItem(Icons.language_rounded, 'Browser', () {
+                    Navigator.pop(context);
+                    _showFeatureSheet(context, 'Automated Browser', 'Surf web pages, read web content, and search Google seamlessly with Maya.', Icons.language_rounded);
+                  }),
+                  _drawerClayItem(Icons.accessibility_new_rounded, 'Accessibility', () {
+                    Navigator.pop(context);
+                    _showFeatureSheet(context, 'Accessibility Service', 'Allows Maya to read your screen, tap buttons, and send WhatsApp messages automatically.', Icons.accessibility_new_rounded);
+                  }),
+
+                  const SizedBox(height: 16),
+                  _sectionHeader('SYSTEM'),
+                  _drawerClayItem(Icons.settings_rounded, 'Settings', () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+                  }),
+                ],
+              ),
             ),
 
-            const Spacer(),
-
-            // Bottom Pro Card
+            // Footer matching frame_014.jpg
             Padding(
-              padding: const EdgeInsets.all(16),
-              child: GestureDetector(
-                onTap: () => _showProModal(context),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF261D4C), Color(0xFF131735)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.neonPurple.withOpacity(0.3),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.goldPro.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.workspace_premium_rounded,
-                          color: AppColors.goldPro,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
-                            Text(
-                              'Max AI Pro',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
-                              ),
-                            ),
-                            SizedBox(height: 2),
-                            Text(
-                              'Unlock more features',
-                              style: TextStyle(
-                                color: AppColors.textSecondary,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const Icon(Icons.chevron_right_rounded, color: AppColors.textMuted),
-                    ],
-                  ),
-                ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              child: const Text(
+                'v5.2.63 · The Hunter AI',
+                style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -232,33 +211,49 @@ class CustomDrawer extends StatelessWidget {
     );
   }
 
-  Widget _drawerItem({
-    required IconData icon,
-    required String title,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
+  Widget _sectionHeader(String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, top: 4, bottom: 8),
+      child: Text(
+        title,
+        style: const TextStyle(
+          color: Color(0xFF64748B),
+          fontWeight: FontWeight.bold,
+          fontSize: 11.5,
+          letterSpacing: 0.8,
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerClayItem(IconData icon, String title, VoidCallback onTap) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      margin: const EdgeInsets.only(bottom: 7),
       decoration: BoxDecoration(
-        color: isSelected ? AppColors.electricBlue.withOpacity(0.2) : Colors.transparent,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x103060A0),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: ListTile(
-        leading: Icon(
-          icon,
-          color: isSelected ? AppColors.neonCyan : AppColors.textSecondary,
-          size: 22,
-        ),
+        dense: true,
+        leading: Icon(icon, color: const Color(0xFF2563EB), size: 22),
         title: Text(
           title,
-          style: TextStyle(
-            color: isSelected ? Colors.white : AppColors.textSecondary,
+          style: const TextStyle(
+            color: Color(0xFF1E293B),
             fontSize: 14,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            fontWeight: FontWeight.w600,
           ),
         ),
+        trailing: const Icon(Icons.chevron_right_rounded, color: Color(0xFF94A3B8), size: 18),
         onTap: onTap,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }

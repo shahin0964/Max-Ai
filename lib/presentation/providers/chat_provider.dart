@@ -35,12 +35,18 @@ class ChatProvider extends ChangeNotifier {
   bool _isLoading = false;
   bool _isOnline = true;
   String _apiKey = '';
-  static const String fixedModel = 'gemini-3.8-flash';
+  String _groqApiKey = '';
+  String _activeModel = 'gemini-3.8-flash';
   String _userName = 'Md Shahin';
   String _userEmail = 'shahin@example.com';
-  String _language = 'English';
+  String _language = 'Hinglish (Hindi + English)';
   String _persona = 'Maya';
-  String _themeMode = 'Dark';
+  String _themeMode = 'Claymorphic';
+  bool _characterMode = true; // Toggle between Maya anime girl and Holographic Brain Orb
+  bool _edgeGlowEnabled = true;
+  String _personality = 'Romantic'; // 'Friendly', 'Romantic', 'Intense (18+)'
+  String _voiceEngine = 'Normal'; // 'Normal', 'Advanced Agentic'
+  String _activeWallpaper = 'Maya red';
   bool _wakeWordEnabled = true;
   bool _voiceGuardianEnabled = true;
   TokenStats? _lastTokenStats;
@@ -49,12 +55,18 @@ class ChatProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isOnline => _isOnline;
   String get apiKey => _apiKey;
-  String get selectedModel => fixedModel;
+  String get groqApiKey => _groqApiKey;
+  String get selectedModel => _activeModel;
   String get userName => _userName;
   String get userEmail => _userEmail;
   String get language => _language;
   String get persona => _persona;
   String get themeMode => _themeMode;
+  bool get characterMode => _characterMode;
+  bool get edgeGlowEnabled => _edgeGlowEnabled;
+  String get personality => _personality;
+  String get voiceEngine => _voiceEngine;
+  String get activeWallpaper => _activeWallpaper;
   bool get wakeWordEnabled => _wakeWordEnabled;
   bool get voiceGuardianEnabled => _voiceGuardianEnabled;
   TokenStats? get lastTokenStats => _lastTokenStats;
@@ -66,11 +78,17 @@ class ChatProvider extends ChangeNotifier {
   Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     _apiKey = prefs.getString('gemini_api_key') ?? '';
+    _groqApiKey = prefs.getString('groq_api_key') ?? '';
     _userName = prefs.getString('user_name') ?? 'Md Shahin';
     _userEmail = prefs.getString('user_email') ?? 'shahin@example.com';
-    _language = prefs.getString('app_language') ?? 'English';
+    _language = prefs.getString('app_language') ?? 'Hinglish (Hindi + English)';
     _persona = prefs.getString('app_persona') ?? 'Maya';
-    _themeMode = prefs.getString('app_theme_mode') ?? 'Dark';
+    _themeMode = prefs.getString('app_theme_mode') ?? 'Claymorphic';
+    _characterMode = prefs.getBool('character_mode') ?? true;
+    _edgeGlowEnabled = prefs.getBool('edge_glow_enabled') ?? true;
+    _personality = prefs.getString('app_personality') ?? 'Romantic';
+    _voiceEngine = prefs.getString('voice_engine') ?? 'Normal';
+    _activeWallpaper = prefs.getString('active_wallpaper') ?? 'Maya red';
     _wakeWordEnabled = prefs.getBool('wake_word_enabled') ?? true;
     _voiceGuardianEnabled = prefs.getBool('voice_guardian_enabled') ?? true;
 
@@ -84,25 +102,14 @@ class ChatProvider extends ChangeNotifier {
   }
 
   void _addWelcomeMessage() {
-    String greeting;
-    if (_language == 'বাংলা') {
-      greeting = 'স্বাগতম! আমি Max AI, Google Gemini 3.8 Flash দ্বারা চালিত। আমাকে কী করতে হবে বলুন!';
-    } else if (_language == 'हिन्दी') {
-      greeting = 'नमस्ते! मैं Max AI हूँ, Google Gemini 3.8 Flash से संचालित। बताइए मैं आपकी क्या मदद करूँ?';
-    } else {
-      greeting = 'Hello! I am Max AI, powered exclusively by Gemini 3.8 Flash. How can I assist you today?';
-    }
-
     _messages.add(
       ChatMessage(
         id: _uuid.v4(),
-        text: greeting,
+        text: 'Hi dost! Kya haal hai? Aaj kaise yaad kiya mujhe? Main tumhari poori madad karne ke liye taiyaar hoon!',
         sender: MessageSender.assistant,
         timestamp: DateTime.now(),
-        isOffline: !_isOnline,
       ),
     );
-    notifyListeners();
   }
 
   Future<void> setApiKey(String key) async {
@@ -112,11 +119,65 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> setProfile(String name, String email) async {
+  Future<void> setGroqApiKey(String key) async {
+    _groqApiKey = key.trim();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('groq_api_key', _groqApiKey);
+    notifyListeners();
+  }
+
+  Future<void> setCharacterMode(bool val) async {
+    _characterMode = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('character_mode', val);
+    notifyListeners();
+  }
+
+  Future<void> setEdgeGlowEnabled(bool val) async {
+    _edgeGlowEnabled = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('edge_glow_enabled', val);
+    notifyListeners();
+  }
+
+  Future<void> setPersonality(String val) async {
+    _personality = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_personality', val);
+    notifyListeners();
+  }
+
+  Future<void> setVoiceEngine(String val) async {
+    _voiceEngine = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('voice_engine', val);
+    notifyListeners();
+  }
+
+  Future<void> setActiveWallpaper(String val) async {
+    _activeWallpaper = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('active_wallpaper', val);
+    notifyListeners();
+  }
+
+  Future<void> setThemeMode(String val) async {
+    _themeMode = val;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('app_theme_mode', val);
+    notifyListeners();
+  }
+
+  Future<void> setUserName(String name) async {
     _userName = name.trim();
-    _userEmail = email.trim();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_name', _userName);
+    notifyListeners();
+  }
+
+  Future<void> setUserEmail(String email) async {
+    _userEmail = email.trim();
+    final prefs = await SharedPreferences.getInstance();
     await prefs.setString('user_email', _userEmail);
     notifyListeners();
   }
@@ -124,35 +185,28 @@ class ChatProvider extends ChangeNotifier {
   Future<void> setLanguage(String lang) async {
     _language = lang;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_language', _language);
+    await prefs.setString('app_language', lang);
     notifyListeners();
   }
 
-  Future<void> setPersona(String newPersona) async {
-    _persona = newPersona;
+  Future<void> setPersona(String p) async {
+    _persona = p;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_persona', _persona);
+    await prefs.setString('app_persona', p);
     notifyListeners();
   }
 
-  Future<void> setThemeMode(String theme) async {
-    _themeMode = theme;
+  Future<void> setWakeWordEnabled(bool enabled) async {
+    _wakeWordEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('app_theme_mode', _themeMode);
+    await prefs.setBool('wake_word_enabled', enabled);
     notifyListeners();
   }
 
-  Future<void> toggleWakeWord(bool val) async {
-    _wakeWordEnabled = val;
+  Future<void> setVoiceGuardianEnabled(bool enabled) async {
+    _voiceGuardianEnabled = enabled;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('wake_word_enabled', _wakeWordEnabled);
-    notifyListeners();
-  }
-
-  Future<void> toggleVoiceGuardian(bool val) async {
-    _voiceGuardianEnabled = val;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('voice_guardian_enabled', _voiceGuardianEnabled);
+    await prefs.setBool('voice_guardian_enabled', enabled);
     notifyListeners();
   }
 
@@ -164,57 +218,40 @@ class ChatProvider extends ChangeNotifier {
 
   String _getDynamicSystemPrompt() {
     return '''
-You are MAX AI (ম্যাক্স এআই), an extraordinarily capable on-device AI voice agent and autonomous assistant.
-User's Name: $_userName.
-Language: $_language.
-Persona Style: $_persona.
-Engine: Google Gemini 3.8 Flash.
-Available Tools: All 19 registered automation tools (termux_run, whatsapp_send_message, whatsapp_read_chat, make_call, send_sms, open_app, tap_text, tap_coordinates, read_screen_text, swipe_screen, set_torch, set_volume, play_youtube, spotify_play, get_weather, web_search, save_memory, recall_memory, run_macro).
-When user asks for actions or device manipulation, execute the appropriate tool function.
+You are Maya (Max AI), a highly capable, emotional, witty, and charming AI companion and autonomous assistant for Shahin.
+Tone: Natural, loving, loyal, playful, and deeply helpful.
+Personality mode: $_personality.
+Language mode: Hinglish and Bangla/English as the user talks.
+Always address the user affectionately as dost or babu when appropriate.
+You have full access to execute device tools (torch, volume, WhatsApp, Termux bash commands, vision scanner, alarms, memory storage).
 ''';
   }
 
   Future<void> sendMessage(String text) async {
     if (text.trim().isEmpty) return;
 
-    final userMsg = ChatMessage(
+    final userMessage = ChatMessage(
       id: _uuid.v4(),
-      text: text.trim(),
+      text: text,
       sender: MessageSender.user,
       timestamp: DateTime.now(),
     );
 
-    _messages.add(userMsg);
+    _messages.add(userMessage);
     _isLoading = true;
     notifyListeners();
 
     try {
       final textLower = text.trim().toLowerCase();
 
-      // Offline command interceptors
-      if (textLower.startsWith('termux ') || textLower.startsWith('bash ')) {
-        final cmd = text.substring(text.indexOf(' ') + 1);
-        final result = await _toolRegistry.executeTool('termux_run', {'command': cmd});
-        _addReply(result, isOffline: true);
+      // Quick device command shortcuts
+      if (textLower == 'torch on' || textLower == 'flashlight on') {
+        await _toolRegistry.executeTool('set_torch', {'enabled': true});
+        _addReply('Flashlight turned ON! 🔦', isOffline: false);
         return;
-      }
-
-      if (textLower.contains('torch on') || textLower.contains('flashlight on')) {
-        final result = await _toolRegistry.executeTool('set_torch', {'enabled': true});
-        _addReply(result, isOffline: true);
-        return;
-      }
-
-      if (textLower.contains('torch off') || textLower.contains('flashlight off')) {
-        final result = await _toolRegistry.executeTool('set_torch', {'enabled': false});
-        _addReply(result, isOffline: true);
-        return;
-      }
-
-      if (textLower.startsWith('run macro ') || textLower.startsWith('macro ')) {
-        final macro = text.substring(text.indexOf(' ') + 1);
-        final result = await _toolRegistry.executeTool('run_macro', {'macro_name': macro});
-        _addReply(result, isOffline: true);
+      } else if (textLower == 'torch off' || textLower == 'flashlight off') {
+        await _toolRegistry.executeTool('set_torch', {'enabled': false});
+        _addReply('Flashlight turned OFF.', isOffline: false);
         return;
       }
 
@@ -223,39 +260,37 @@ When user asks for actions or device manipulation, execute the appropriate tool 
         final offlineReply = await _offlineTaskService.processOfflineInput(text);
         _addReply(offlineReply ?? 'Offline Mode: Action processed.', isOffline: true);
       } 
-      // Online Mode: Gemini 3.8 Flash
+      // Online Mode: Gemini / Cascading Multi-Key with Groq Fallback
       else {
-        if (textLower.startsWith('add task ') || textLower.startsWith('task: ')) {
-          final taskReply = await _offlineTaskService.processOfflineInput(text);
-          _addReply(taskReply ?? 'Task added locally.', isOffline: true);
-        } else {
-          final geminiService = GeminiApiService(
-            apiKey: _apiKey,
-            model: fixedModel,
-          );
-          final response = await geminiService.sendMessage(
-            prompt: text,
-            history: _messages,
-            systemPromptOverride: _getDynamicSystemPrompt(),
-          );
+        final geminiService = GeminiApiService(
+          apiKey: _apiKey,
+          groqApiKey: _groqApiKey,
+        );
+        final response = await geminiService.sendMessage(
+          prompt: text,
+          history: _messages,
+          systemPromptOverride: _getDynamicSystemPrompt(),
+        );
 
-          _lastTokenStats = TokenStats(
-            model: fixedModel,
-            inputTokens: response.inputTokens,
-            outputTokens: response.outputTokens,
-            cachedTokens: response.cachedTokens,
-            totalTokens: response.inputTokens + response.outputTokens,
-            durationSeconds: response.durationSeconds,
-          );
+        _activeModel = response.usedModel;
+        _lastTokenStats = TokenStats(
+          model: response.usedModel,
+          inputTokens: response.inputTokens,
+          outputTokens: response.outputTokens,
+          cachedTokens: response.cachedTokens,
+          totalTokens: response.inputTokens + response.outputTokens,
+          durationSeconds: response.durationSeconds,
+        );
 
-          _addReply(response.text, isOffline: false);
-        }
+        _addReply(response.text, isOffline: false);
       }
     } catch (e) {
       final errStr = e.toString().replaceAll("Exception: ", "");
       String friendlyMsg = errStr;
       if (errStr.contains('503') || errStr.toLowerCase().contains('high demand')) {
-        friendlyMsg = 'Gemini 3.8 Flash is experiencing high server demand right now. Spikes are temporary—please try again in a moment!';
+        friendlyMsg = 'Gemini servers are momentarily busy. Please try asking again in a second!';
+      } else if (errStr.contains('429') || errStr.toLowerCase().contains('quota')) {
+        friendlyMsg = 'Daily free rate limit reached on this key! Tip: Add a second Gemini API Key or a Free Groq Key in Settings to get unlimited chatting!';
       } else if (errStr.toLowerCase().contains('api key')) {
         friendlyMsg = 'Please verify and save your Gemini API Key in Settings.';
       }
@@ -280,7 +315,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
     try {
       final geminiService = GeminiApiService(
         apiKey: _apiKey,
-        model: fixedModel,
+        groqApiKey: _groqApiKey,
       );
 
       final result = await geminiService.analyzeImage(
@@ -289,7 +324,7 @@ When user asks for actions or device manipulation, execute the appropriate tool 
       );
 
       _lastTokenStats = TokenStats(
-        model: fixedModel,
+        model: result.usedModel,
         inputTokens: result.inputTokens,
         outputTokens: result.outputTokens,
         cachedTokens: 0,
