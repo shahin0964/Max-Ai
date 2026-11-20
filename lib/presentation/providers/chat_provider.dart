@@ -216,13 +216,15 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _getDynamicSystemPrompt() {
+  Future<String> _getDynamicSystemPrompt() async {
+    final memoryContext = await ToolRegistryService.getCompactMemorySummary();
+    final memSnippet = memoryContext.isNotEmpty ? '\n$memoryContext' : '';
     return '''
 You are Maya (Max AI), a highly capable, emotional, witty, and charming AI companion and autonomous assistant for Shahin.
 Tone: Natural, loving, loyal, playful, and deeply helpful.
 Personality mode: $_personality.
 Language mode: Hinglish and Bangla/English as the user talks.
-Always address the user affectionately as dost or babu when appropriate.
+Always address the user affectionately as dost or babu when appropriate.$memSnippet
 You have full access to execute device tools (torch, volume, WhatsApp, Termux bash commands, vision scanner, alarms, memory storage).
 ''';
   }
@@ -244,7 +246,7 @@ You have full access to execute device tools (torch, volume, WhatsApp, Termux ba
     try {
       final textLower = text.trim().toLowerCase();
 
-      // Quick device command shortcuts
+      // Quick device command shortcuts (Zero Token)
       if (textLower == 'torch on' || textLower == 'flashlight on') {
         await _toolRegistry.executeTool('set_torch', {'enabled': true});
         _addReply('Flashlight turned ON! 🔦', isOffline: false);
@@ -255,21 +257,35 @@ You have full access to execute device tools (torch, volume, WhatsApp, Termux ba
         return;
       }
 
+      // Local Zero-Token Long-Term Memory Capture (Instant save to Yaadein)
+      if (textLower.startsWith('remember ') ||
+          textLower.startsWith('yaad rakhna ') ||
+          textLower.startsWith('mone rekho ') ||
+          textLower.startsWith('save memory ')) {
+        final fact = text.replaceFirst(RegExp(r'^(remember|yaad rakhna|mone rekho|save memory)\s*', caseSensitive: false), '').trim();
+        if (fact.isNotEmpty) {
+          await ToolRegistryService.saveQuickMemory(fact);
+          _addReply('🧠 Yaad rakh liya dost: "$fact"! Continuous Yaadein memory me save ho gaya.', isOffline: false);
+          return;
+        }
+      }
+
       // Offline Mode
       if (!_isOnline) {
         final offlineReply = await _offlineTaskService.processOfflineInput(text);
         _addReply(offlineReply ?? 'Offline Mode: Action processed.', isOffline: true);
       } 
-      // Online Mode: Gemini / Cascading Multi-Key with Groq Fallback
+      // Online Mode: Gemini Waterfall (7 Models) / Cascading Multi-Key with Groq Fallback
       else {
         final geminiService = GeminiApiService(
           apiKey: _apiKey,
           groqApiKey: _groqApiKey,
         );
+        final systemPrompt = await _getDynamicSystemPrompt();
         final response = await geminiService.sendMessage(
           prompt: text,
           history: _messages,
-          systemPromptOverride: _getDynamicSystemPrompt(),
+          systemPromptOverride: systemPrompt,
         );
 
         _activeModel = response.usedModel;

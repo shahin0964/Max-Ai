@@ -3,8 +3,6 @@ import 'package:provider/provider.dart';
 import '../../core/constants/app_colors.dart';
 import '../providers/chat_provider.dart';
 import '../widgets/message_bubble.dart';
-import '../widgets/custom_drawer.dart';
-import '../widgets/rainbow_edge_glow.dart';
 import 'scanner_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -14,13 +12,23 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
-  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+class _ChatScreenState extends State<ChatScreen> with SingleTickerProviderStateMixin {
   final TextEditingController _inputController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  late AnimationController _dotsController;
+
+  @override
+  void initState() {
+    super.initState();
+    _dotsController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+  }
 
   @override
   void dispose() {
+    _dotsController.dispose();
     _inputController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -33,7 +41,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _inputController.clear();
     context.read<ChatProvider>().sendMessage(text);
 
-    Future.delayed(const Duration(milliseconds: 100), () {
+    Future.delayed(const Duration(milliseconds: 150), () {
       if (_scrollController.hasClients) {
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
@@ -47,158 +55,205 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   Widget build(BuildContext context) {
     final chatProvider = context.watch<ChatProvider>();
-    final edgeGlow = chatProvider.edgeGlowEnabled;
+    final messages = chatProvider.messages;
 
-    return RainbowEdgeGlow(
-      enabled: edgeGlow,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFEBF3FB),
-        drawer: CustomDrawer(selectedIndex: 4, onSelectIndex: (_) {}),
-        body: SafeArea(
-          child: Column(
-            children: [
-              // Chat Header matching frame_013.jpg
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x103060A0), blurRadius: 10, offset: Offset(0, 3)),
-                          ],
-                        ),
-                        child: const Icon(Icons.menu_rounded, color: Color(0xFF1E293B), size: 22),
-                      ),
-                    ),
-                    const Text(
-                      'Chat',
-                      style: TextStyle(
-                        color: Color(0xFF0F172A),
-                        fontWeight: FontWeight.bold,
-                        fontSize: 20,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(10),
+    return Scaffold(
+      backgroundColor: const Color(0xFF07090E),
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 1. Top Cyber-Glow Chat Header
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: const [
-                          BoxShadow(color: Color(0x103060A0), blurRadius: 10, offset: Offset(0, 3)),
-                        ],
+                        color: const Color(0xFF111624),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF1E293B)),
                       ),
-                      child: Stack(
-                        children: [
-                          const Icon(Icons.notifications_none_rounded, color: Color(0xFF1E293B), size: 22),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
+                      child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Avatar & Title
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF00F2FE), Color(0xFF7C4DFF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      boxShadow: [
+                        BoxShadow(color: const Color(0xFF00F2FE).withOpacity(0.3), blurRadius: 8),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text('M', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'Max AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15.5,
+                          ),
+                        ),
+                        Row(
+                          children: [
+                            Container(
                               width: 7,
                               height: 7,
-                              decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Color(0xFF10B981),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Sub-header Bar: "🟢 Maya live hai" | "🗑️ Clear" matching frame_013.jpg
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          width: 7,
-                          height: 7,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFF10B981),
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${chatProvider.persona} live hai',
-                          style: const TextStyle(
-                            color: Color(0xFF64748B),
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
+                            const SizedBox(width: 5),
+                            Text(
+                              chatProvider.activeModel.isNotEmpty
+                                  ? chatProvider.activeModel
+                                  : 'Gemini 3.8 Flash',
+                              style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 11),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        chatProvider.clearChat();
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Chat cleared!')));
-                      },
-                      child: Row(
-                        children: const [
-                          Icon(Icons.delete_outline_rounded, color: Color(0xFF64748B), size: 16),
-                          SizedBox(width: 4),
-                          Text(
-                            'Clear',
-                            style: TextStyle(
-                              color: Color(0xFF64748B),
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
+                  ),
+                  // Clear Chat Button
+                  GestureDetector(
+                    onTap: () {
+                      chatProvider.clearChat();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Chat thread cleared.'), duration: Duration(seconds: 1)),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF111624),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF1E293B)),
                       ),
+                      child: const Icon(Icons.delete_outline_rounded, color: Color(0xFF94A3B8), size: 19),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const Divider(color: Color(0xFF1E293B), height: 1),
+
+            // Token Stats Banner (if available)
+            if (chatProvider.lastTokenStats != null) ...[
+              Container(
+                margin: const EdgeInsets.only(top: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF111624),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF00F2FE).withOpacity(0.25)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.bolt_rounded, size: 13, color: Color(0xFF00F2FE)),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${chatProvider.lastTokenStats!.totalTokens} tokens · ${chatProvider.lastTokenStats!.durationSeconds.toStringAsFixed(2)}s · Ultra-low overhead ⚡',
+                      style: const TextStyle(color: Color(0xFF94A3B8), fontSize: 10.5),
                     ),
                   ],
                 ),
               ),
+            ],
 
-              // Messages Stream
-              Expanded(
-                child: ListView.builder(
-                  controller: _scrollController,
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  itemCount: chatProvider.messages.length + (chatProvider.isLoading ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (index == chatProvider.messages.length) {
-                      return const TypingBubble();
-                    }
-                    return MessageBubble(message: chatProvider.messages[index]);
-                  },
+            // 2. Chat Conversation Stream
+            Expanded(
+              child: ListView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                itemCount: messages.length,
+                itemBuilder: (context, index) {
+                  return MessageBubble(message: messages[index]);
+                },
+              ),
+            ),
+
+            // 3. Animated Typing Indicator Pill
+            if (chatProvider.isLoading) ...[
+              Padding(
+                padding: const EdgeInsets.only(left: 18, bottom: 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111624),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF1E293B)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'Max AI thinking',
+                          style: TextStyle(color: Color(0xFF94A3B8), fontSize: 11.5),
+                        ),
+                        const SizedBox(width: 6),
+                        AnimatedBuilder(
+                          animation: _dotsController,
+                          builder: (context, _) {
+                            final val = (_dotsController.value * 3).floor();
+                            final dots = '.' * (val + 1);
+                            return Text(
+                              dots,
+                              style: const TextStyle(
+                                color: Color(0xFF00F2FE),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
+            ],
 
-              // Bottom Input Bar matching frame_013.jpg
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            // 4. Floating Command Deck (Input Bar)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFF111624),
                   borderRadius: BorderRadius.circular(28),
+                  border: Border.all(color: const Color(0xFF1E293B)),
                   boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x163060A0),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
+                    BoxShadow(color: Color(0x30000000), blurRadius: 12, offset: Offset(0, 3)),
                   ],
                 ),
                 child: Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.attach_file_rounded, color: Color(0xFF64748B), size: 22),
+                      icon: const Icon(Icons.camera_alt_outlined, color: Color(0xFF00F2FE), size: 20),
                       onPressed: () {
                         Navigator.push(context, MaterialPageRoute(builder: (_) => const ScannerScreen()));
                       },
@@ -206,12 +261,12 @@ class _ChatScreenState extends State<ChatScreen> {
                     Expanded(
                       child: TextField(
                         controller: _inputController,
-                        style: const TextStyle(color: Color(0xFF0F172A), fontSize: 14),
+                        style: const TextStyle(color: Colors.white, fontSize: 14),
                         decoration: const InputDecoration(
-                          hintText: 'Type a message...',
-                          hintStyle: TextStyle(color: Color(0xFF94A3B8), fontSize: 13.5),
+                          hintText: 'Message Max AI...',
+                          hintStyle: TextStyle(color: Color(0xFF64748B), fontSize: 13.5),
                           border: InputBorder.none,
-                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 10),
                         ),
                         onSubmitted: (_) => _sendMessage(),
                       ),
@@ -219,98 +274,24 @@ class _ChatScreenState extends State<ChatScreen> {
                     GestureDetector(
                       onTap: _sendMessage,
                       child: Container(
-                        width: 38,
-                        height: 38,
+                        padding: const EdgeInsets.all(10),
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xFF2563EB),
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF00F2FE), Color(0xFF2563EB)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
                         ),
-                        child: const Icon(Icons.send_rounded, color: Colors.white, size: 17),
+                        child: const Icon(Icons.arrow_upward_rounded, color: Colors.white, size: 18),
                       ),
                     ),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
-      ),
-    );
-  }
-}
-
-/// Messenger-style animated 3-dot typing pill
-class TypingBubble extends StatefulWidget {
-  const TypingBubble({super.key});
-
-  @override
-  State<TypingBubble> createState() => _TypingBubbleState();
-}
-
-class _TypingBubbleState extends State<TypingBubble> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-
-  @override
-  void initState() {
-    super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 16),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(22),
-                topRight: Radius.circular(22),
-                bottomRight: Radius.circular(22),
-                bottomLeft: Radius.circular(6),
-              ),
-              boxShadow: const [
-                BoxShadow(color: Color(0x103060A0), blurRadius: 10, offset: Offset(0, 3)),
-              ],
-            ),
-            child: AnimatedBuilder(
-              animation: _controller,
-              builder: (context, _) {
-                return Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: List.generate(3, (i) {
-                    final delay = i * 0.22;
-                    final progress = (_controller.value - delay) % 1.0;
-                    final bounce = (progress < 0.5) ? progress * 2 : (1.0 - progress) * 2;
-                    return Container(
-                      margin: EdgeInsets.only(right: i < 2 ? 5 : 0),
-                      width: 7,
-                      height: 7,
-                      transform: Matrix4.translationValues(0, -bounce * 4, 0),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF2563EB).withOpacity(0.35 + (bounce * 0.65)),
-                        shape: BoxShape.circle,
-                      ),
-                    );
-                  }),
-                );
-              },
-            ),
-          ),
-        ],
       ),
     );
   }

@@ -5,6 +5,28 @@ class ToolRegistryService {
   static const String _memoryKey = 'max_ai_long_term_memory';
   static const String _macrosKey = 'max_ai_macros';
 
+  /// Get all stored continuous long-term memories
+  static Future<List<String>> getStoredMemories() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getStringList(_memoryKey) ?? [];
+  }
+
+  /// Format memories as a compact context injection snippet (< 30 tokens)
+  static Future<String> getCompactMemorySummary() async {
+    final list = await getStoredMemories();
+    if (list.isEmpty) return '';
+    final top = list.take(6).join('; ');
+    return 'Long-Term Memory Context: [$top]';
+  }
+
+  /// Direct quick save without spending any Gemini API tokens
+  static Future<void> saveQuickMemory(String fact) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = prefs.getStringList(_memoryKey) ?? [];
+    list.add(fact);
+    await prefs.setStringList(_memoryKey, list);
+  }
+
   /// List of all 19 tools extracted from the autonomous agent engine
   static const List<Map<String, dynamic>> toolsSchema = [
     {

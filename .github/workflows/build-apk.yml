@@ -61,32 +61,38 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.5
-          name: Max AI Release v1.0.5 (Signed APK + Maya 1:1 Claymorphic UI + All Features Unlocked + Rate-Limit Liberation Pool)
+          tag_name: v1.0.6
+          name: Max AI Release v1.0.6 (Signed APK + Brand New Obsidian Cyber-Glow UI + 7-Model Waterfall + Ultra Token Efficiency)
           body: |
-            ### 🚀 Max AI Android Release v1.0.5 - Official Signed APK
+            ### 🚀 Max AI Android Release v1.0.6 - Official Signed APK
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
             - **Signing:** Official Release Keystore (`KEYSTORE_BASE64` signed APK)
             
-            ### 💎 UI & Feature Upgrades in v1.0.5:
-            - 🌸 **Authentic Maya Claymorphic UI Engine (Video Match 1:1):**
-              - Soft 3D Claymorphic light styling (`#EBF3FB`) with soft drop shadows and rounded clay cards
-              - Animated RGB Rainbow edge glow frame wrapping around the device screen
-              - Authentic Maya 3D Character (Red Dress) with instant toggle button to Holographic Voice Orb
-              - Top Quick Action Pills: `♪ Gaane`, `📖 Padhai`, `✏️ Journal`
-              - 3 Real-Time Status Cards: `💧 Mausam: 22° Showers, 96%`, `📅 Aaj: 21 Sat, Nov`, `🤍 Mood: Pyaar bh... Sab badhiya`
-              - 5-Tab Clay Bottom Nav: `Home`, `Scan` (Vision HUD), Center Floating Blue Mic Orb, `Yaadein` (Macros/Tasks), `Chat`
-              - Claymorphic Drawer matching `frame_014.jpg`: `KAAM-KAAJ` (Markets, Marketing, Documents, Meri photos, Website/Coding, Terminal, Browser, Accessibility), `SYSTEM` (Settings)
-            - 🔓 **100% Unlocked VIP Features (Zero Activation Paywalls):**
-              - All 10 Pro Max Wallpapers fully unlocked (Asleep at desk, The reaching hand, Jarvis, Maya Green/Red/Saree/Studio/Violet, Venom)
-              - Advanced Agentic Voice Engine fully unlocked and operational
-              - Intense (18+) Personality Mode fully unlocked
-              - All Pro features accessible without activation codes or paywalls
-            - ⚡ **Anti-Rate-Limit (429 & 503) Liberation:**
-              - Multi-Key Rotation Pool: Enter multiple Gemini API keys separated by comma to multiply daily quota
-              - Automatic Model Cascading: When `gemini-3.8-flash` hits its 20/day preview limit or 503 high demand spike, the app seamlessly cascades to `gemini-2.0-flash` (1,500 requests/day free!), `gemini-2.0-flash-lite`, and Groq API (14,400 requests/day free)
-              - No more 429 quota exhaustion interruptions or 404 model errors
+            ### 💎 Key Upgrades in v1.0.6:
+            - 🌌 **Brand New "Obsidian Cyber-Glow" UI Architecture:**
+              - Complete removal of legacy designs in favor of a bespoke, futuristic AI interface
+              - Deep OLED Obsidian backdrop (`#07090E`) with dynamic cyan and violet ambient radial glow
+              - **Quantum Voice Core Centerpiece:** Animated multi-ring interactive holographic sphere with ripple waves and live breathing states (Idle, Listening, Thinking, Speaking)
+              - **Floating Capability Horizon:** Instant access chips for `Chat Now`, `Vision AI`, `Yaadein Memory`, `Termux Console`, and `19 Tools`
+              - **Floating Command Deck:** Integrated bottom deck with Quick Action (+), dynamic text field, Pulsing Mic button, and Swift Send
+              - **Sleek 4-Tab Floating Dock:** `Core`, `Chat`, `Studio`, and `Settings`
+              - **Messenger Chat Experience:** Frosted glass message bubbles with avatar `M`, real-time typing indicator (`• • •`), one-tap clipboard copy, double checkmarks, and token metric badges
+            - ⚡ **7-Model Google Gemini Waterfall Cascade:**
+              - Starts with **`gemini-3.8-flash`** and automatically cascades across 7 models upon 429 quota, 503 spike, or 404/400 errors:
+                1. `gemini-3.8-flash` (Primary Turbo)
+                2. `gemini-2.0-flash` (1,500 requests/day free)
+                3. `gemini-2.0-flash-lite` (1,500 requests/day free · Ultra Fast)
+                4. `gemini-1.5-flash` (1,500 requests/day free · Stable)
+                5. `gemini-1.5-flash-8b` (1,500 requests/day free · Lowest Token Cost)
+                6. `gemini-2.0-pro-exp-02-05` (Deep Reasoning Fallback)
+                7. `gemini-1.5-pro` (Reasoning Fallback)
+                8. Groq API Fallback (`llama-3.3-70b-versatile` · 14,400 free requests/day)
+              - Multi-Key Rotation Pool: Separate multiple keys with commas in Settings to multiply quota
+            - 🧠 **Ultra-Low Token Consumption & Continuous Long-Term Memory (Yaadein):**
+              - **Smart Action Gating:** Automatically omits 19 heavy tool declarations on conversational messages, slashing input tokens by 85% (from 1,300+ down to ~150 tokens!)
+              - **Zero-Token Instant Memory:** Saying "remember [fact]" saves directly to local memory without spending API quota
+              - **Autonomous Proactive Context:** Past memories automatically inject into context so Max AI remembers your identity and preferences without wasteful tool round-trips
             
             📥 **Download Signed APK:** Tap `Max-AI-signed-release.apk` below to download and install!
           files: Max-AI-signed-release.apk

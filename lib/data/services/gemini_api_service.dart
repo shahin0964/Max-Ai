@@ -32,11 +32,16 @@ class GeminiApiService {
   final String? groqApiKey;
   final ToolRegistryService _toolRegistry = ToolRegistryService();
 
+  /// Complete Google Gemini Model Waterfall Cascade:
+  /// Starts from the latest 3.8 Flash and cascades down across all available models!
   static const List<String> fallbackModels = [
-    'gemini-3.8-flash',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite',
-    'gemini-1.5-flash',
+    'gemini-3.8-flash',         // Priority 1: User's priority turbo model
+    'gemini-2.0-flash',         // Priority 2: Google 2.0 workhorse (1,500 req/day free, 15 RPM)
+    'gemini-2.0-flash-lite',    // Priority 3: 2.0 Flash Lite (1,500 req/day free, 30 RPM)
+    'gemini-1.5-flash',         // Priority 4: Battle-tested 1.5 Flash (1,500 req/day free, 15 RPM)
+    'gemini-1.5-flash-8b',      // Priority 5: Ultra-lightweight 8B Flash (1,500 req/day free, minimal tokens)
+    'gemini-2.0-pro-exp-02-05', // Priority 6: Gemini 2.0 Pro Experimental (deep reasoning fallback)
+    'gemini-1.5-pro',           // Priority 7: Gemini 1.5 Pro (50 req/day free, 2 RPM)
   ];
 
   GeminiApiService({
@@ -53,6 +58,19 @@ class GeminiApiService {
         .where((s) => s.isNotEmpty)
         .toList();
     return list.isEmpty ? [apiKey.trim()] : list;
+  }
+
+  /// Detect whether the prompt actually requires device tool capabilities.
+  /// If false, omitting tools saves ~1,100 input tokens per message!
+  static bool requiresTools(String prompt) {
+    final lower = prompt.toLowerCase();
+    const actionKeywords = [
+      'torch', 'flashlight', 'light', 'volume', 'sound', 'termux', 'bash', 'command',
+      'run', 'exec', 'whatsapp', 'message', 'call', 'alarm', 'timer', 'remind',
+      'open app', 'launch', 'camera', 'photo', 'battery', 'device', 'wifi', 'bluetooth',
+      'search', 'weather', 'calculator'
+    ];
+    return actionKeywords.any((k) => lower.contains(k));
   }
 
   /// Sends a token-optimized chat request to Google Gemini with automatic
@@ -77,9 +95,9 @@ class GeminiApiService {
 
     final stopwatch = Stopwatch()..start();
 
-    // Prepare payload
-    final trimmedHistory = history.length > 8
-        ? history.sublist(history.length - 8)
+    // Prepare token-optimized sliding history window (last 6 messages)
+    final trimmedHistory = history.length > 6
+        ? history.sublist(history.length - 6)
         : history;
 
     final contents = <Map<String, dynamic>>[];
@@ -90,9 +108,13 @@ class GeminiApiService {
           'parts': [{'text': msg.text}],
         });
       } else if (msg.sender == MessageSender.assistant) {
+        // Truncate long past answers in context to max 180 chars to save tokens
+        final cleanText = msg.text.length > 180
+            ? '${msg.text.substring(0, 180)}...'
+            : msg.text;
         contents.add({
           'role': 'model',
-          'parts': [{'text': msg.text}],
+          'parts': [{'text': cleanText}],
         });
       }
     }
@@ -102,21 +124,27 @@ class GeminiApiService {
       'parts': [{'text': prompt}],
     });
 
-    final payload = {
+    final needTools = requiresTools(prompt);
+
+    final payload = <String, dynamic>{
       'system_instruction': {
         'parts': [{'text': systemPromptOverride ?? AppStrings.defaultSystemPrompt}],
       },
       'contents': contents,
-      'tools': [
+      'generationConfig': {
+        'temperature': 0.7,
+        'maxOutputTokens': 800,
+      },
+    };
+
+    // Attach 19 tools ONLY when an action is needed. Saves ~1,100 tokens per chat message!
+    if (needTools) {
+      payload['tools'] = [
         {
           'function_declarations': ToolRegistryService.toolsSchema,
         }
-      ],
-      'generationConfig': {
-        'temperature': 0.7,
-        'maxOutputTokens': 2048,
-      },
-    };
+      ];
+    }
 
     try {
       final endpoint = Uri.parse(
@@ -198,8 +226,8 @@ class GeminiApiService {
           throw Exception('Gemini Error (503): $message');
         }
       }
-      // 404 Model Not Found or deprecated -> immediately cascade to next active model!
-      else if (response.statusCode == 404 && modelIndex + 1 < fallbackModels.length) {
+      // 404 or 400 Model Not Found / Unsupported -> immediately cascade to next active model!
+      else if ((response.statusCode == 404 || response.statusCode == 400) && modelIndex + 1 < fallbackModels.length) {
         return await sendMessage(
           prompt: prompt,
           history: history,

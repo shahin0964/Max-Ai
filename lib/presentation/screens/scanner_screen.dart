@@ -51,51 +51,40 @@ class _ScannerScreenState extends State<ScannerScreen> {
         body: SafeArea(
           child: Column(
             children: [
-              // Scanner Header matching frame_010.jpg
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    GestureDetector(
-                      onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: const Icon(Icons.menu_rounded, color: Colors.white, size: 22),
-                      ),
-                    ),
-                    const Text(
-                      'Scanner',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 20),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.all(10),
+            // Top Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF1E293B),
-                        borderRadius: BorderRadius.circular(16),
+                        color: const Color(0xFF111624),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFF1E293B)),
                       ),
-                      child: Stack(
-                        children: [
-                          const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 22),
-                          Positioned(
-                            right: 0,
-                            top: 0,
-                            child: Container(
-                              width: 7,
-                              height: 7,
-                              decoration: const BoxDecoration(color: Color(0xFFEF4444), shape: BoxShape.circle),
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.white, size: 18),
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(width: 14),
+                  const Text(
+                    'Vision AI Scanner',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 17),
+                  ),
+                  const Spacer(),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00F2FE).withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text('GEMINI VISION', style: TextStyle(color: Color(0xFF00F2FE), fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ],
               ),
+            ),
 
               // Cyberpunk Camera Viewport matching frame_010.jpg
               Expanded(
