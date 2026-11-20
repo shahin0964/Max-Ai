@@ -1,4 +1,4 @@
-name: Build and Release Aura Voice AI APK
+name: Build and Release Maya AI Assistant APK
 
 on:
   push:
@@ -37,16 +37,16 @@ jobs:
           echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > app/keystore.jks
           ls -lh app/keystore.jks
         else
-          echo "Warning: KEYSTORE_BASE64 secret is empty!"
+          echo "Warning: KEYSTORE_BASE64 secret is empty, proceeding with debug build..."
         fi
 
-    - name: Build Signed Release APK
+    - name: Build APK
       run: |
         if [ -f app/keystore.jks ]; then
           echo "Keystore detected! Building Signed Release APK..."
           ./gradlew assembleRelease --stacktrace
         else
-          echo "No keystore detected, falling back to assembleDebug..."
+          echo "No keystore detected, building Debug APK..."
           ./gradlew assembleDebug --stacktrace
         fi
       env:
@@ -58,37 +58,44 @@ jobs:
       run: |
         mkdir -p release-artifacts
         if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-          cp app/build/outputs/apk/release/app-release.apk release-artifacts/AuraVoice-AI-Signed.apk
+          cp app/build/outputs/apk/release/app-release.apk release-artifacts/Maya-AI-v5.2.63.apk
+        elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
+          cp app/build/outputs/apk/release/app-release-unsigned.apk release-artifacts/Maya-AI-v5.2.63.apk
         else
-          cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/AuraVoice-AI-Signed.apk
+          cp app/build/outputs/apk/debug/app-debug.apk release-artifacts/Maya-AI-v5.2.63.apk
         fi
+        ls -lh release-artifacts/
 
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: AuraVoice-AI-Signed-APK
-        path: release-artifacts/AuraVoice-AI-Signed.apk
+        name: Maya-AI-v5.2.63-APK
+        path: release-artifacts/Maya-AI-v5.2.63.apk
 
     - name: Create GitHub Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v2
       with:
-        name: "Aura Voice AI ${{ github.ref_name }}"
+        name: "Maya AI Assistant ${{ github.ref_name }}"
         draft: false
         prerelease: false
-        generate_release_notes: false
+        generate_release_notes: true
         body: |
-          ## 🎙️ Aura Voice AI (${{ github.ref_name }}) [Official Signed Release]
-          **100% Offline, Private, Super-Powered On-Device AI Cockpit**
+          ## 🎙️ Maya AI Assistant (${{ github.ref_name }})
+          **Autonomous On-Device AI Voice Agent & Android Controller**
 
-          ### ✨ What's New:
-          - 🔐 **Official Keystore Signed APK**: Built and cryptographically signed directly on GitHub.
-          - 💬 **Interactive Chat Cockpit**: Full conversational chat bar with live text generation and voice toggling.
-          - 🧠 **Offline Model Visual Loader**: Real-time HUD showing model initialization, VRAM allocation (2.2GB), and Snapdragon 8 Gen 2 NPU telemetry.
-          - 💻 **Embedded Linux Terminal**: Built-in shell runner (Termux / Linux commands) inside the assistant.
-          - 📱 **Full Phone & App Automation**: Automatically launch any app (YouTube, WhatsApp, Camera, Settings, etc.) and control hardware (Flashlight, Battery stats).
-          - 🦾 **Jarvis 3D Holographic Arc Reactor**: Multi-axis 3D gyroscope rings & audio-reactive plasma core.
+          ### ✨ Features:
+          - 🧠 **Multi-Turn Agentic Brain**: Multi-model support (Groq Llama 3.3 70B, Google Gemini, OpenRouter) with autonomous tool calling.
+          - 🎙️ **Exact Maya Voice Pipeline**:
+            - Real-time on-device Voice Activity Detection (Silero VAD)
+            - DTLN Acoustic Echo Cancellation (AEC)
+            - TFLite Wakeword Detector ("Hey Maya", "Hello Maya")
+            - Three Personas: **Maya** (Multilingual conversational), **Friday** (Tactical assistant), and **Venom** (Bold AI companion).
+          - 💻 **Termux Live Automation**: Dispatches bash scripts via `com.termux.permission.RUN_COMMAND` with a live terminal output reel.
+          - 📱 **Screen Perception & A11y Driver**: Reads screen content and performs auto-taps and gestures.
+          - 🛠️ **System Automation Hub**: WhatsApp messaging, phone calls, SMS, flashlight, and media volume control.
+          - 🎨 **Jetpack Compose UI/UX**: Identical Maya Dark Theme, glowing reactive Voice Orb, Inter & JetBrains Mono typography.
 
-          ### 📦 Installation:
-          Download `AuraVoice-AI-Signed.apk` below and install directly on your Android phone.
-        files: release-artifacts/AuraVoice-AI-Signed.apk
+          ### 📦 Download:
+          Download `Maya-AI-v5.2.63.apk` below and install directly on your Android device!
+        files: release-artifacts/Maya-AI-v5.2.63.apk

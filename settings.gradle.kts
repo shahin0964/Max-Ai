@@ -20,5 +20,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AuraVoiceAI"
+rootProject.name = "Maya"
 include(":app")

@@ -6,15 +6,15 @@ plugins {
 }
 
 android {
-    namespace = "com.auravoice.assistant"
+    namespace = "com.getmaya.android"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "com.auravoice.assistant"
+        applicationId = "com.getmaya.android"
         minSdk = 26
         targetSdk = 34
-        versionCode = 8
-        versionName = "1.0.8"
+        versionCode = 50263
+        versionName = "5.2.63"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -92,7 +92,12 @@ dependencies {
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Room Database for Long-Term Continuous Memory
+    // Networking & Multi-LLM API calling (Gemini, Groq, OpenRouter, Anthropic)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
+
+    // Room Database
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)

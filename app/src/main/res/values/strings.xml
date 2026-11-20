@@ -1,9 +1,9 @@
 <resources>
-    <string name="app_name">Aura Voice AI</string>
-    <string name="channel_name">Aura Voice AI Core Service</string>
-    <string name="channel_description">Continuous background neural listener for Aura Voice AI</string>
-    <string name="notification_title">Aura Core Online</string>
-    <string name="notification_listening">Jarvis Protocol Active • Listening for "Hey Aura" / "অরা"...</string>
-    <string name="notification_thinking">Neural Core Processing...</string>
-    <string name="notification_speaking">Aura Core Speaking...</string>
+    <string name="app_name">Maya</string>
+    <string name="channel_name">Maya Assistant Core</string>
+    <string name="channel_description">Active neural assistant and automation pipeline for Maya</string>
+    <string name="notification_title">Maya is active</string>
+    <string name="notification_listening">Listening for "Hey Maya" or voice commands...</string>
+    <string name="notification_thinking">Thinking...</string>
+    <string name="notification_speaking">Speaking...</string>
 </resources>
