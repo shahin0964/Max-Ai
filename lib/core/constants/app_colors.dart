@@ -20,6 +20,7 @@ class AppColors {
 
   // App Theme Mappings & Aliases
   static const Color background = mayaBackground;
+  static const Color surface = mayaSurface;
   static const Color surfaceCard = mayaSurface;
   static const Color surfaceElevated = mayaSurfaceElevated;
   static const Color surfaceLight = mayaBorder;
@@ -41,6 +42,7 @@ class AppColors {
 
   static const Color goldPro = Color(0xFFFFD700);
   static const Color online = Color(0xFF10B981);
+  static const Color offline = Color(0xFF6B7280);
   static const Color error = Color(0xFFEF4444);
   static const Color success = Color(0xFF10B981);
   static const Color warning = Color(0xFFF59E0B);
