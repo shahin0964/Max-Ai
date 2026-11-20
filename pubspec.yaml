@@ -1,7 +1,7 @@
 name: max_ai
 description: "Max AI - A Hybrid Online/Offline AI Assistant for Android"
 publish_to: 'none'
-version: 1.0.2+3
+version: 1.0.3+4
 
 environment:
   sdk: '>=3.2.0 <4.0.0'
@@ -24,3 +24,5 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/voices/

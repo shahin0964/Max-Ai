@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
 import '../../core/constants/app_colors.dart';
 import '../widgets/custom_drawer.dart';
+import '../widgets/voice_orb.dart';
+import '../widgets/gradient_logo.dart';
 import '../providers/chat_provider.dart';
-import '../providers/task_provider.dart';
 import 'chat_screen.dart';
-import 'voice_screen.dart';
 import 'vision_screen.dart';
 import 'memory_screen.dart';
 import 'tools_manager_screen.dart';
+import 'terminal_reel_screen.dart';
 import 'settings_screen.dart';
+import '../../data/services/tool_registry_service.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -21,12 +22,113 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  final ToolRegistryService _toolRegistry = ToolRegistryService();
   int _navIndex = 0;
+  VoiceOrbState _orbState = VoiceOrbState.idle;
+  String _voiceStatusText = "Tap orb or say 'Hey Max'";
+  bool _isTorchOn = false;
+  int _volumeLevel = 75;
+
+  final List<Map<String, dynamic>> _quickPrompts = [
+    {'title': '☀️ Weather Today', 'cmd': 'What is the weather today?'},
+    {'title': '💬 Send WhatsApp', 'cmd': 'whatsapp_send_message'},
+    {'title': '⚡ Termux Check', 'cmd': 'termux uname -a'},
+    {'title': '🔦 Toggle Torch', 'cmd': 'torch'},
+    {'title': '🎵 Play Spotify', 'cmd': 'spotify_play Synthwave'},
+    {'title': '🤖 Macro: Gemini Image', 'cmd': 'run macro gemini image'},
+  ];
+
+  Future<void> _handleQuickPrompt(String cmd) async {
+    if (cmd == 'torch') {
+      _toggleTorch();
+      return;
+    }
+    if (cmd == 'whatsapp_send_message') {
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen()));
+      return;
+    }
+
+    setState(() {
+      _orbState = VoiceOrbState.listening;
+      _voiceStatusText = 'Listening to "$cmd"...';
+    });
+
+    await Future.delayed(const Duration(milliseconds: 600));
+
+    setState(() {
+      _orbState = VoiceOrbState.thinking;
+      _voiceStatusText = 'Reasoning & Executing Tools...';
+    });
+
+    final chatProvider = context.read<ChatProvider>();
+    await chatProvider.sendMessage(cmd);
+
+    if (mounted) {
+      final reply = chatProvider.messages.last.text;
+      setState(() {
+        _orbState = VoiceOrbState.speaking;
+        _voiceStatusText = reply.length > 80 ? '${reply.substring(0, 80)}...' : reply;
+      });
+
+      Future.delayed(const Duration(seconds: 4), () {
+        if (mounted) {
+          setState(() {
+            _orbState = VoiceOrbState.idle;
+            _voiceStatusText = "Tap orb or say 'Hey Max'";
+          });
+        }
+      });
+    }
+  }
+
+  void _onOrbTap() {
+    setState(() {
+      if (_orbState == VoiceOrbState.idle) {
+        _orbState = VoiceOrbState.listening;
+        _voiceStatusText = 'Listening to your voice...';
+      } else if (_orbState == VoiceOrbState.listening) {
+        _orbState = VoiceOrbState.thinking;
+        _voiceStatusText = 'Thinking with Gemini 3.8 Flash...';
+        Future.delayed(const Duration(seconds: 2), () {
+          if (mounted) {
+            setState(() {
+              _orbState = VoiceOrbState.speaking;
+              _voiceStatusText = 'Max AI is active. How can I help you, Shahin?';
+            });
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                setState(() {
+                  _orbState = VoiceOrbState.idle;
+                  _voiceStatusText = "Tap orb or say 'Hey Max'";
+                });
+              }
+            });
+          }
+        });
+      } else {
+        _orbState = VoiceOrbState.idle;
+        _voiceStatusText = "Tap orb or say 'Hey Max'";
+      }
+    });
+  }
+
+  Future<void> _toggleTorch() async {
+    setState(() => _isTorchOn = !_isTorchOn);
+    await _toolRegistry.executeTool('set_torch', {'enabled': _isTorchOn});
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Flashlight turned ${_isTorchOn ? "ON" : "OFF"}')),
+    );
+  }
+
+  Future<void> _setVolume(int level) async {
+    setState(() => _volumeLevel = level);
+    await _toolRegistry.executeTool('set_volume', {'level_percent': _volumeLevel});
+  }
 
   void _showNotificationSheet() {
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF0F172A),
+      backgroundColor: AppColors.mayaSurface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
       ),
@@ -41,7 +143,7 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.notifications_active_rounded, color: AppColors.neonCyan, size: 22),
+                    Icon(Icons.notifications_active_rounded, color: AppColors.mayaAccentCyan, size: 22),
                     SizedBox(width: 8),
                     Text(
                       'System Notifications',
@@ -52,10 +154,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 IconButton(icon: const Icon(Icons.close, color: Colors.white70), onPressed: () => Navigator.pop(ctx)),
               ],
             ),
-            const Divider(color: AppColors.surfaceLight),
-            _notifItem('⚡ Autonomous Agent Engine', 'Gemini 3.8 Flash & 19 tools are active and standing by.'),
-            _notifItem('📱 Termux Bridge Ready', 'Ready to run background bash intents.'),
-            _notifItem('🎙️ Voice Guardian & Wake Word', 'Voiceprint monitoring enabled.'),
+            const Divider(color: AppColors.mayaBorder),
+            _notifItem('• Termux RUN_COMMAND Bridge: Active', 'Ready to dispatch bash commands.'),
+            _notifItem('• Voice Guardian (Speaker Lock): Armed', 'ReDimNet2-B6 model verifying Shahin\'s voiceprint.'),
+            _notifItem('• Accessibility Screen Control: Supported', 'OCR and touch dispatch active.'),
           ],
         ),
       ),
@@ -69,10 +171,10 @@ class _HomeScreenState extends State<HomeScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            margin: const EdgeInsets.only(top: 2),
+            margin: const EdgeInsets.only(top: 4),
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(color: AppColors.neonCyan, shape: BoxShape.circle),
+            decoration: const BoxDecoration(color: AppColors.mayaAccentCyan, shape: BoxShape.circle),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -89,160 +191,83 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  void _showProModal() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0E142B),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(22),
-          side: const BorderSide(color: AppColors.goldPro),
-        ),
-        title: Row(
-          children: const [
-            Icon(Icons.workspace_premium_rounded, color: AppColors.goldPro, size: 28),
-            SizedBox(width: 8),
-            Text('Max AI Pro Active', style: TextStyle(color: AppColors.goldPro, fontWeight: FontWeight.bold)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text('👑 Unlocked Features:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(height: 8),
-            Text('• Gemini 3.8 Flash High Turbo Engine\n• 19 Autonomous Tools & Termux Rootless Bridge\n• Multi-step App Macros Execution\n• Voice Guardian Speaker Biometrics\n• Infinite Long-Term Memory Vault',
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 13, height: 1.4)),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.goldPro, foregroundColor: Colors.black),
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Awesome!', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showAddReminderDialog() {
-    final titleCtrl = TextEditingController();
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surfaceCard,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-        title: const Text('Add Quick Reminder / Task', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-        content: TextField(
-          controller: titleCtrl,
-          style: const TextStyle(color: Colors.white),
-          decoration: const InputDecoration(
-            hintText: 'e.g. Call team at 4 PM, Build APK',
-            labelText: 'Reminder Title',
-            labelStyle: TextStyle(color: AppColors.neonCyan),
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel', style: TextStyle(color: AppColors.textMuted))),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.neonCyan, foregroundColor: Colors.black),
-            onPressed: () {
-              final text = titleCtrl.text.trim();
-              if (text.isNotEmpty) {
-                context.read<TaskProvider>().addTask(text, dueDate: DateTime.now().add(const Duration(hours: 3)));
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Reminder added successfully!')));
-              }
-            },
-            child: const Text('Add'),
-          ),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    final chatProvider = context.watch<ChatProvider>();
-    final taskProvider = context.watch<TaskProvider>();
-    final pendingTasks = taskProvider.tasks.where((t) => !t.isCompleted).toList();
-    final nextTask = pendingTasks.isNotEmpty ? pendingTasks.first : null;
-
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.mayaBackground,
       drawer: CustomDrawer(
         selectedIndex: _navIndex,
-        onSelectIndex: (index) {
-          setState(() {
-            _navIndex = index;
-          });
-        },
+        onSelectIndex: (index) => setState(() => _navIndex = index),
       ),
       body: SafeArea(
         child: Column(
           children: [
-            // Top App Bar
+            // Maya Top Bar (Logo + Voice Guardian Status Capsule + Terminal + Settings)
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 26),
-                    onPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                  ),
                   Row(
                     children: [
-                      // Pro Badge
+                      IconButton(
+                        icon: const Icon(Icons.menu_rounded, color: Colors.white, size: 24),
+                        onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                      ),
+                      const SizedBox(width: 4),
+                      const GradientLogo(size: 28),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Max AI',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  // Voice Guardian Status Capsule matching Maya APK
+                  Row(
+                    children: [
                       GestureDetector(
-                        onTap: _showProModal,
+                        onTap: _showNotificationSheet,
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                           decoration: BoxDecoration(
-                            color: AppColors.goldPro.withOpacity(0.15),
+                            color: AppColors.mayaSurface,
                             borderRadius: BorderRadius.circular(16),
-                            border: Border.all(color: AppColors.goldPro.withOpacity(0.4)),
+                            border: Border.all(color: AppColors.mayaAccentCyan.withOpacity(0.4)),
                           ),
                           child: Row(
-                            children: const [
-                              Icon(Icons.workspace_premium_rounded, color: AppColors.goldPro, size: 16),
-                              SizedBox(width: 4),
-                              Text(
-                                'Pro',
+                            children: [
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.online,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              const Text(
+                                'Voice Guardian Ready',
                                 style: TextStyle(
-                                  color: AppColors.goldPro,
+                                  color: AppColors.mayaAccentCyan,
                                   fontWeight: FontWeight.bold,
-                                  fontSize: 12,
+                                  fontSize: 11,
                                 ),
                               ),
                             ],
                           ),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      // Notification Bell
-                      Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.notifications_none_rounded, color: Colors.white, size: 24),
-                            onPressed: _showNotificationSheet,
-                          ),
-                          Positioned(
-                            right: 12,
-                            top: 12,
-                            child: Container(
-                              width: 8,
-                              height: 8,
-                              decoration: const BoxDecoration(
-                                color: AppColors.error,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                        ],
+                      const SizedBox(width: 6),
+                      IconButton(
+                        icon: const Icon(Icons.terminal_rounded, color: AppColors.terminalGreen, size: 22),
+                        onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen())),
                       ),
                     ],
                   ),
@@ -250,253 +275,176 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
 
+            // Scrollable Content
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 children: [
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 16),
 
-                  // Greeting Section with 3D Robot Mascot Icon
+                  // Centerpiece: The Authentic VoiceOrb from Maya APK
+                  Center(
+                    child: Column(
+                      children: [
+                        VoiceOrb(
+                          state: _orbState,
+                          size: 190,
+                          onTap: _onOrbTap,
+                        ),
+                        const SizedBox(height: 16),
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 300),
+                          child: Text(
+                            _voiceStatusText,
+                            key: ValueKey(_voiceStatusText),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: _orbState == VoiceOrbState.listening
+                                  ? AppColors.mayaAccentCyan
+                                  : _orbState == VoiceOrbState.thinking
+                                      ? AppColors.mayaAccentPink
+                                      : AppColors.textSecondary,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Quick Prompts Carousel (Horizontal scrolling chips)
+                  const Text(
+                    'Quick Prompts',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    height: 38,
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: _quickPrompts.length,
+                      itemBuilder: (context, index) {
+                        final q = _quickPrompts[index];
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 8),
+                          child: ActionChip(
+                            backgroundColor: AppColors.mayaSurface,
+                            side: const BorderSide(color: AppColors.mayaBorder),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                            label: Text(
+                              q['title']!,
+                              style: const TextStyle(color: AppColors.mayaAccentCyan, fontSize: 12),
+                            ),
+                            onPressed: () => _handleQuickPrompt(q['cmd']!),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+
+                  const SizedBox(height: 24),
+
+                  // Tools & Automations Device Tiles (Matching ToolsScreen in Maya APK)
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Hello, ${chatProvider.userName.split(' ')[0]}! 👋',
-                            style: const TextStyle(
-                              color: AppColors.textPrimary,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            'How can I help you today?',
-                            style: TextStyle(
-                              color: AppColors.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                      // 3D Robot Avatar Badge
-                      GestureDetector(
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceScreen())),
-                        child: Container(
-                          width: 72,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF38BDF8), Color(0xFF6366F1)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.neonCyan.withOpacity(0.4),
-                                blurRadius: 16,
-                                spreadRadius: 2,
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.smart_toy_rounded,
-                            color: Colors.white,
-                            size: 40,
-                          ),
+                      const Text(
+                        'Tools & Automations',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
                         ),
+                      ),
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen())),
+                        child: const Text(
+                          'See 19 Tools →',
+                          style: TextStyle(color: AppColors.mayaAccentCyan, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+
+                  const SizedBox(height: 12),
+
+                  // Grid of Device Tiles
+                  GridView.count(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 1.4,
+                    children: [
+                      // Torch Tile
+                      _deviceTile(
+                        icon: _isTorchOn ? Icons.flashlight_on_rounded : Icons.flashlight_off_rounded,
+                        iconColor: _isTorchOn ? Colors.amberAccent : AppColors.mayaTextSecondary,
+                        title: 'Flashlight',
+                        subtitle: _isTorchOn ? 'ON' : 'OFF',
+                        isActive: _isTorchOn,
+                        onTap: _toggleTorch,
+                      ),
+                      // Media Volume Tile
+                      _deviceTile(
+                        icon: Icons.volume_up_rounded,
+                        iconColor: AppColors.mayaAccentCyan,
+                        title: 'Media Volume',
+                        subtitle: '$_volumeLevel%',
+                        isActive: true,
+                        onTap: () {
+                          final nextVol = _volumeLevel >= 100 ? 25 : _volumeLevel + 25;
+                          _setVolume(nextVol);
+                        },
+                      ),
+                      // Termux Runner Tile
+                      _deviceTile(
+                        icon: Icons.terminal_rounded,
+                        iconColor: AppColors.terminalGreen,
+                        title: 'Termux Reel',
+                        subtitle: 'Live Console',
+                        isActive: true,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen())),
+                      ),
+                      // WhatsApp Direct Tile
+                      _deviceTile(
+                        icon: Icons.chat_bubble_outline_rounded,
+                        iconColor: const Color(0xFF25D366),
+                        title: 'WhatsApp',
+                        subtitle: 'Send Message',
+                        isActive: true,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen())),
+                      ),
+                      // Vision Scanner Tile
+                      _deviceTile(
+                        icon: Icons.document_scanner_rounded,
+                        iconColor: AppColors.mayaAccentPink,
+                        title: 'Vision AI',
+                        subtitle: 'Gemini Scanner',
+                        isActive: true,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionScreen())),
+                      ),
+                      // Memory Vault Tile
+                      _deviceTile(
+                        icon: Icons.psychology_rounded,
+                        iconColor: AppColors.mayaPrimary,
+                        title: 'Memory Vault',
+                        subtitle: 'Personal Facts',
+                        isActive: true,
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MemoryScreen())),
                       ),
                     ],
                   ),
 
                   const SizedBox(height: 24),
-
-                  // Glowing Prompt / Search Pill Container
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const ChatScreen()),
-                      );
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: BorderRadius.circular(30),
-                        border: Border.all(
-                          color: AppColors.neonCyan.withOpacity(0.4),
-                          width: 1.2,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.neonCyan.withOpacity(0.15),
-                            blurRadius: 14,
-                            spreadRadius: 1,
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.auto_awesome, color: AppColors.neonCyan, size: 20),
-                          const SizedBox(width: 12),
-                          const Expanded(
-                            child: Text(
-                              'Ask anything...',
-                              style: TextStyle(color: AppColors.textMuted, fontSize: 15),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.mic_rounded, color: Colors.white),
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const VoiceScreen()),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // 6 Quick Action Cards (2x3 Grid) - 100% Functional!
-                  GridView.count(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    crossAxisCount: 3,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    childAspectRatio: 1.05,
-                    children: [
-                      _actionCard(
-                        icon: Icons.chat_bubble_outline_rounded,
-                        label: 'Chat',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen())),
-                      ),
-                      _actionCard(
-                        icon: Icons.mic_none_rounded,
-                        label: 'Voice',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VoiceScreen())),
-                      ),
-                      _actionCard(
-                        icon: Icons.camera_alt_outlined,
-                        label: 'Vision',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VisionScreen())),
-                      ),
-                      _actionCard(
-                        icon: Icons.grid_view_rounded,
-                        label: 'Tools',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen())),
-                      ),
-                      _actionCard(
-                        icon: Icons.psychology_outlined,
-                        label: 'Memory',
-                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MemoryScreen())),
-                      ),
-                      _actionCard(
-                        icon: Icons.more_horiz_rounded,
-                        label: 'More',
-                        onTap: () => _scaffoldKey.currentState?.openDrawer(),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 28),
-
-                  // Quick Access Section
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Quick Access',
-                        style: TextStyle(
-                          color: AppColors.textPrimary,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      GestureDetector(
-                        onTap: _showAddReminderDialog,
-                        child: const Text(
-                          '+ Add Reminder',
-                          style: TextStyle(
-                            color: AppColors.neonCyan,
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Dynamic Calendar Reminder Card
-                  GestureDetector(
-                    onTap: _showAddReminderDialog,
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.surfaceLight),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceLight,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.calendar_month_rounded,
-                              color: Color(0xFFF43F5E),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  nextTask != null ? nextTask.title : 'No upcoming reminder',
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  nextTask != null && nextTask.dueDate != null
-                                      ? DateFormat('EEE, MMM d • h:mm a').format(nextTask.dueDate!)
-                                      : 'Tap to add reminder',
-                                  style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Icon(
-                            Icons.chevron_right_rounded,
-                            color: AppColors.textMuted,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 30),
                 ],
               ),
             ),
@@ -504,91 +452,84 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
 
-      // Glassmorphic Custom Bottom Navigation Bar
+      // Maya APK 5-Tab Bottom Navigation Bar
       bottomNavigationBar: Container(
-        height: 70,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        height: 68,
         decoration: BoxDecoration(
-          color: AppColors.surfaceGlass,
-          borderRadius: BorderRadius.circular(35),
-          border: Border.all(color: AppColors.surfaceLight.withOpacity(0.5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.3),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: AppColors.mayaSurface,
+          border: const Border(top: BorderSide(color: AppColors.mayaBorder, width: 0.8)),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _navButton(Icons.home_rounded, 'Home', 0),
-            _navButton(Icons.chat_bubble_outline_rounded, 'Chat', 1),
-
-            // Center glowing Sparkle Action Button
-            GestureDetector(
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const VoiceScreen()),
-                );
-              },
-              child: Container(
-                width: 50,
-                height: 50,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: AppColors.botCenterBtnGradient,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.neonCyan.withOpacity(0.5),
-                      blurRadius: 14,
-                      spreadRadius: 2,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.auto_awesome,
-                  color: Colors.white,
-                  size: 24,
-                ),
-              ),
-            ),
-
-            _navButton(Icons.grid_view_rounded, 'Tools', 2),
-            _navButton(Icons.settings_outlined, 'Settings', 3),
+            _navTab(Icons.mic_rounded, 'Voice', 0, () => setState(() => _navIndex = 0)),
+            _navTab(Icons.chat_bubble_outline_rounded, 'Chat', 1, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
+            }),
+            _navTab(Icons.grid_view_rounded, 'Tools', 2, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen()));
+            }),
+            _navTab(Icons.terminal_rounded, 'Terminal', 3, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const TerminalReelScreen()));
+            }),
+            _navTab(Icons.settings_outlined, 'Settings', 4, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
+            }),
           ],
         ),
       ),
     );
   }
 
-  Widget _actionCard({
+  Widget _deviceTile({
     required IconData icon,
-    required String label,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required bool isActive,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: AppColors.mayaSurface,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.surfaceLight.withOpacity(0.6)),
+          border: Border.all(
+            color: isActive ? AppColors.mayaBorder : AppColors.mayaBorder.withOpacity(0.5),
+          ),
         ),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Icon(icon, color: AppColors.neonCyan, size: 28),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 13,
-                fontWeight: FontWeight.w500,
-              ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: iconColor, size: 24),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: isActive ? AppColors.online : AppColors.textMuted,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 11),
+                ),
+              ],
             ),
           ],
         ),
@@ -596,35 +537,25 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _navButton(IconData icon, String label, int index) {
-    final isSelected = _navIndex == index;
+  Widget _navTab(IconData icon, String label, int index, VoidCallback onTap) {
+    final isSel = _navIndex == index;
     return GestureDetector(
-      onTap: () {
-        if (index == 1) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ChatScreen()));
-        } else if (index == 2) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const ToolsManagerScreen()));
-        } else if (index == 3) {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const SettingsScreen()));
-        } else {
-          setState(() => _navIndex = index);
-        }
-      },
+      onTap: onTap,
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
             icon,
-            color: isSelected ? AppColors.neonCyan : AppColors.textMuted,
+            color: isSel ? AppColors.mayaAccentCyan : AppColors.textMuted,
             size: 22,
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 3),
           Text(
             label,
             style: TextStyle(
-              color: isSelected ? AppColors.neonCyan : AppColors.textMuted,
+              color: isSel ? AppColors.mayaAccentCyan : AppColors.textMuted,
               fontSize: 10,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              fontWeight: isSel ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],

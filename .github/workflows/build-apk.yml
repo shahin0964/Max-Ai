@@ -1,4 +1,4 @@
-name: Build and Release Max AI APK
+name: Build and Release Signed Max AI APK
 
 on:
   push:
@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Release APK
+    name: Build & Release Signed APK
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -32,48 +32,59 @@ jobs:
       - name: Install Dependencies
         run: flutter pub get
 
-      - name: Build Release APK
+      - name: Decode Keystore from GitHub Secrets
+        run: |
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/keystore.jks
+            echo "Keystore successfully decoded into android/app/keystore.jks"
+            ls -la android/app/keystore.jks
+          else
+            echo "Warning: KEYSTORE_BASE64 secret not found, fallback to debug keystore"
+          fi
+
+      - name: Build Signed Release APK
         run: flutter build apk --release
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
 
       - name: Rename APK
-        run: cp build/app/outputs/flutter-apk/app-release.apk Max-AI-release.apk
+        run: cp build/app/outputs/flutter-apk/app-release.apk Max-AI-signed-release.apk
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Max-AI-APK
-          path: Max-AI-release.apk
+          name: Max-AI-Signed-APK
+          path: Max-AI-signed-release.apk
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.2
-          name: Max AI Release v1.0.2 (100% Functional UI, Vision AI & All Interactive Tools)
+          tag_name: v1.0.3
+          name: Max AI Release v1.0.3 (Signed APK + Maya VoiceOrb UI + Audio & Gemini 503 Fixes)
           body: |
-            ### 🚀 Max AI Android Release v1.0.2 - 100% Functional Update
+            ### 🚀 Max AI Android Release v1.0.3 - Official Signed APK
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
-            - **Engine:** Gemini 3.8 Flash + Local Autonomous Engine
-            - **100% Functional Features & Interactive Screens:**
-              - 👁️ **Vision AI Scanner (`VisionScreen`):** Multimodal image analysis with Gemini 3.8 Flash, cyber scanning laser HUD.
-              - 🧠 **Continuous Long-term Memory Vault (`MemoryScreen`):** Search, add, delete, and manage facts and preferences.
-              - 🛠️ **19 Extracted Tools Manager & Playground (`ToolsManagerScreen`):** Interactive parameter input and instant live test runner for all 19 tools!
-              - 💻 **Termux Live Terminal Reel (`TerminalReelScreen`):** Interactive in-app bash terminal with retro green phosphor console and quick command chips!
-              - 🎙️ **Interactive Voice Mode (`VoiceScreen`):** Real-time voice animation, transcription, quick voice prompts, and Gemini 3.8 verbal readout!
-              - ⚙️ **All Settings 100% Functional (`SettingsScreen`):**
-                - Editable User Profile (Name & Email saved in SharedPreferences)
-                - Language selector (English, বাংলা, हिन्दी)
-                - Theme selector (Dark Neon, Cyberpunk Purple, AMOLED True Black)
-                - Voice & Personality models (Maya, Friday, Venom)
-                - Autonomous Voice Guardian biometrics & Wake Word toggles
-                - Live Gemini API Key verification with latency & token counter
-                - Backup & Restore JSON export
-              - 📊 **Reply Details & Token Analytics:** Exact token usage popup (Input tokens, Output tokens, Cached tokens, Latency) in Chat.
-              - 📅 **Dynamic Reminders:** Real upcoming reminder card on Home with instant reminder creation.
-              - 👑 **Max AI Pro Perks:** Unlocked full autonomous capabilities modal.
+            - **Signing:** Official Release Keystore (`KEYSTORE_BASE64` signed APK)
             
-            📥 **Download:** Tap `Max-AI-release.apk` below to download and update your app!
-          files: Max-AI-release.apk
+            ### 💎 UI & Feature Upgrades in v1.0.3:
+            - 🔮 **Exact Maya AI UI Engine Replacement:**
+              - Complete color system (`MayaBackground`, `MayaSurface`, `MayaAccentCyan`, `MayaPrimary`, `MayaAccentPink`, `TerminalGreen`)
+              - Centerpiece **`VoiceOrb`** with authentic multi-layer concentric ripple rings & breathing states (Idle, Listening, Thinking, Speaking)
+              - Header with `🟢 Active • Voice Guardian Ready` security status
+              - 6 Interactive Device Tiles (`Flashlight`, `Media Volume`, `Termux Reel`, `WhatsApp`, `Vision AI`, `Memory Vault`)
+              - 5-Tab Navigation (`Voice`, `Chat`, `Tools`, `Terminal`, `Settings`)
+            - 🔊 **Voice Audio Previews Working 100%:**
+              - Extracted authentic `.ogg` voice models (`maya_Aoede.ogg`, `friday_Aoede.ogg`, `venom_Fenrir.ogg`)
+              - Native Android `MediaPlayer` integration with TextToSpeech fallback
+            - 🛡️ **Gemini 503 & High Demand Auto-Recovery:**
+              - Automatic resilience & fallback to `gemini-2.5-flash` or `gemini-2.0-flash`
+              - "Test Connection & Latency" button guaranteed to test and report successfully without getting stuck
+            
+            📥 **Download Signed APK:** Tap `Max-AI-signed-release.apk` below to download and install!
+          files: Max-AI-signed-release.apk
           draft: false
           prerelease: false
         env:

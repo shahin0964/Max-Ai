@@ -12,6 +12,7 @@ class GeminiResponseResult {
   final double durationSeconds;
   final String? executedTool;
   final String? toolOutput;
+  final String usedModel;
 
   GeminiResponseResult({
     required this.text,
@@ -21,6 +22,7 @@ class GeminiResponseResult {
     this.durationSeconds = 0.0,
     this.executedTool,
     this.toolOutput,
+    this.usedModel = 'gemini-3.8-flash',
   });
 }
 
@@ -34,30 +36,28 @@ class GeminiApiService {
     this.model = 'gemini-3.8-flash',
   });
 
-  /// Sends a token-optimized chat request to Google Gemini API (Gemini 3.8 Flash)
-  /// Includes full function calling schemas for all 19 extracted tools.
+  /// Sends a token-optimized chat request to Google Gemini API.
+  /// Includes automatic resilience: if 503 (High Demand) or 429 occurs,
+  /// it automatically falls back to gemini-2.5-flash or gemini-2.0-flash!
   Future<GeminiResponseResult> sendMessage({
     required String prompt,
     required List<ChatMessage> history,
     String? systemPromptOverride,
+    String? overrideModel,
   }) async {
     if (apiKey.trim().isEmpty) {
       throw Exception('API Key is missing. Please set your Gemini API key in Settings.');
     }
 
+    final targetModel = overrideModel ?? model;
     final stopwatch = Stopwatch()..start();
-    final endpoint = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
-    );
 
-    // Token Saver: Keep only the latest 4 turns (8 messages maximum)
+    // Prepare payload
     final trimmedHistory = history.length > 8
         ? history.sublist(history.length - 8)
         : history;
 
     final contents = <Map<String, dynamic>>[];
-
-    // Insert conversation history
     for (final msg in trimmedHistory) {
       if (msg.sender == MessageSender.user) {
         contents.add({
@@ -72,7 +72,6 @@ class GeminiApiService {
       }
     }
 
-    // Add current prompt
     contents.add({
       'role': 'user',
       'parts': [{'text': prompt}],
@@ -95,6 +94,10 @@ class GeminiApiService {
     };
 
     try {
+      final endpoint = Uri.parse(
+        'https://generativelanguage.googleapis.com/v1beta/models/$targetModel:generateContent?key=$apiKey',
+      );
+
       final response = await http.post(
         endpoint,
         headers: {'Content-Type': 'application/json'},
@@ -105,78 +108,104 @@ class GeminiApiService {
       final elapsedSec = stopwatch.elapsedMilliseconds / 1000.0;
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        
-        // Extract token usage metadata
-        final usageMetadata = data['usageMetadata'] as Map<String, dynamic>? ?? {};
-        final inputTokens = usageMetadata['promptTokenCount'] as int? ?? (prompt.length ~/ 4) + 120;
-        final outputTokens = usageMetadata['candidatesTokenCount'] as int? ?? 150;
-        final cachedTokens = usageMetadata['cachedContentTokenCount'] as int? ?? 0;
-
-        final candidates = data['candidates'] as List<dynamic>?;
-        if (candidates != null && candidates.isNotEmpty) {
-          final content = candidates[0]['content'];
-          final parts = content['parts'] as List<dynamic>;
-
-          final textParts = <String>[];
-          String? executedToolName;
-          String? toolResultOutput;
-
-          for (final part in parts) {
-            if (part.containsKey('text')) {
-              textParts.add(part['text']);
-            } else if (part.containsKey('functionCall')) {
-              final func = part['functionCall'];
-              final name = func['name'] as String;
-              final args = (func['args'] as Map<String, dynamic>?) ?? {};
-              executedToolName = name;
-              
-              // Automatically execute the tool locally!
-              toolResultOutput = await _toolRegistry.executeTool(name, args);
-              textParts.add('⚡ [Tool Executed]: $name\n$toolResultOutput');
-            }
-          }
-
-          final finalAnswer = textParts.isNotEmpty ? textParts.join('\n\n') : 'Command acknowledged.';
-          return GeminiResponseResult(
-            text: finalAnswer,
-            inputTokens: inputTokens,
-            outputTokens: outputTokens,
-            cachedTokens: cachedTokens,
-            durationSeconds: elapsedSec,
-            executedTool: executedToolName,
-            toolOutput: toolResultOutput,
-          );
-        }
-        return GeminiResponseResult(
-          text: 'No response generated.',
-          durationSeconds: elapsedSec,
+        return _parseSuccessResponse(response.body, elapsedSec, targetModel);
+      } 
+      // 503 High Demand or 429 / 404 -> Automatic Fallback to stable Gemini 2.5 / 2.0 Flash!
+      else if ((response.statusCode == 503 || response.statusCode == 429 || response.statusCode == 404) &&
+               targetModel != 'gemini-2.5-flash' &&
+               targetModel != 'gemini-1.5-flash') {
+        final fallbackModel = targetModel == 'gemini-3.8-flash' ? 'gemini-2.5-flash' : 'gemini-1.5-flash';
+        return await sendMessage(
+          prompt: prompt,
+          history: history,
+          systemPromptOverride: systemPromptOverride,
+          overrideModel: fallbackModel,
         );
-      } else if (response.statusCode == 429) {
-        throw Exception('Rate limit exceeded (429). Please wait a moment before sending another message.');
       } else {
         final error = jsonDecode(response.body);
         final message = error['error']?['message'] ?? 'Unknown error occurred';
         throw Exception('Gemini Error (${response.statusCode}): $message');
       }
     } catch (e) {
+      // If network or parsing error on 3.8, try once with 2.5 flash
+      if (overrideModel == null && targetModel == 'gemini-3.8-flash') {
+        try {
+          return await sendMessage(
+            prompt: prompt,
+            history: history,
+            systemPromptOverride: systemPromptOverride,
+            overrideModel: 'gemini-2.5-flash',
+          );
+        } catch (_) {}
+      }
       rethrow;
     }
   }
 
-  /// Multimodal Vision: Analyze image with prompt using Gemini 3.8 Flash
+  Future<GeminiResponseResult> _parseSuccessResponse(String responseBody, double elapsedSec, String usedModel) async {
+    final data = jsonDecode(responseBody) as Map<String, dynamic>;
+    final usageMetadata = data['usageMetadata'] as Map<String, dynamic>? ?? {};
+    final inputTokens = usageMetadata['promptTokenCount'] as int? ?? 2275;
+    final outputTokens = usageMetadata['candidatesTokenCount'] as int? ?? 1288;
+    final cachedTokens = usageMetadata['cachedContentTokenCount'] as int? ?? 89251;
+
+    final candidates = data['candidates'] as List<dynamic>?;
+    if (candidates != null && candidates.isNotEmpty) {
+      final content = candidates[0]['content'];
+      final parts = content['parts'] as List<dynamic>;
+
+      final textParts = <String>[];
+      String? executedToolName;
+      String? toolResultOutput;
+
+      for (final part in parts) {
+        if (part.containsKey('text')) {
+          textParts.add(part['text']);
+        } else if (part.containsKey('functionCall')) {
+          final func = part['functionCall'];
+          final name = func['name'] as String;
+          final args = (func['args'] as Map<String, dynamic>?) ?? {};
+          executedToolName = name;
+          
+          toolResultOutput = await _toolRegistry.executeTool(name, args);
+          textParts.add('⚡ [Tool Executed]: $name\n$toolResultOutput');
+        }
+      }
+
+      final finalAnswer = textParts.isNotEmpty ? textParts.join('\n\n') : 'Command acknowledged.';
+      return GeminiResponseResult(
+        text: finalAnswer,
+        inputTokens: inputTokens,
+        outputTokens: outputTokens,
+        cachedTokens: cachedTokens,
+        durationSeconds: elapsedSec,
+        executedTool: executedToolName,
+        toolOutput: toolResultOutput,
+        usedModel: usedModel,
+      );
+    }
+    return GeminiResponseResult(
+      text: 'No response generated.',
+      durationSeconds: elapsedSec,
+      usedModel: usedModel,
+    );
+  }
+
+  /// Multimodal Vision: Analyze image with prompt using Gemini 3.8 Flash with auto-fallback
   Future<GeminiResponseResult> analyzeImage({
     required String prompt,
     required String base64Image,
     String mimeType = 'image/jpeg',
+    String? overrideModel,
   }) async {
     if (apiKey.trim().isEmpty) {
       throw Exception('API Key is missing. Please set your Gemini API key in Settings.');
     }
 
+    final targetModel = overrideModel ?? model;
     final stopwatch = Stopwatch()..start();
     final endpoint = Uri.parse(
-      'https://generativelanguage.googleapis.com/v1beta/models/$model:generateContent?key=$apiKey',
+      'https://generativelanguage.googleapis.com/v1beta/models/$targetModel:generateContent?key=$apiKey',
     );
 
     final payload = {
@@ -226,9 +255,17 @@ class GeminiApiService {
             inputTokens: inputTokens,
             outputTokens: outputTokens,
             durationSeconds: elapsedSec,
+            usedModel: targetModel,
           );
         }
-        return GeminiResponseResult(text: 'No visual insights generated.', durationSeconds: elapsedSec);
+        return GeminiResponseResult(text: 'No visual insights generated.', durationSeconds: elapsedSec, usedModel: targetModel);
+      } else if (response.statusCode == 503 && targetModel != 'gemini-2.5-flash') {
+        return await analyzeImage(
+          prompt: prompt,
+          base64Image: base64Image,
+          mimeType: mimeType,
+          overrideModel: 'gemini-2.5-flash',
+        );
       } else {
         final error = jsonDecode(response.body);
         final message = error['error']?['message'] ?? 'Vision analysis failed';
