@@ -47,24 +47,32 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.1
-          name: Max AI Release v1.0.1 (Gemini 3.8 Flash + 19 Extracted Tools)
+          tag_name: v1.0.2
+          name: Max AI Release v1.0.2 (100% Functional UI, Vision AI & All Interactive Tools)
           body: |
-            ### 🚀 Max AI Android Release v1.0.1
+            ### 🚀 Max AI Android Release v1.0.2 - 100% Functional Update
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
-            - **Model:** Google Gemini 3.8 Flash default
-            - **Extracted Automation Tools (19 Tools):**
-              - Termux Bash Command Execution (`termux_run`)
-              - WhatsApp Send & Read Chat (`whatsapp_send_message`, `whatsapp_read_chat`)
-              - Screen Automation (`tap_text`, `tap_coordinates`, `swipe_screen`, `read_screen_text`)
-              - Built-in App Macros (`chatgpt image`, `gemini image`, `gemini video`)
-              - Hardware Control (`set_torch`, `set_volume`, `make_call`, `send_sms`)
-              - Media & Web (`play_youtube`, `spotify_play`, `get_weather`, `web_search`)
-              - Continuous Memory (`save_memory`, `recall_memory`)
-            - **Design:** Futuristic Neon Dark Glassmorphism UI
+            - **Engine:** Gemini 3.8 Flash + Local Autonomous Engine
+            - **100% Functional Features & Interactive Screens:**
+              - 👁️ **Vision AI Scanner (`VisionScreen`):** Multimodal image analysis with Gemini 3.8 Flash, cyber scanning laser HUD.
+              - 🧠 **Continuous Long-term Memory Vault (`MemoryScreen`):** Search, add, delete, and manage facts and preferences.
+              - 🛠️ **19 Extracted Tools Manager & Playground (`ToolsManagerScreen`):** Interactive parameter input and instant live test runner for all 19 tools!
+              - 💻 **Termux Live Terminal Reel (`TerminalReelScreen`):** Interactive in-app bash terminal with retro green phosphor console and quick command chips!
+              - 🎙️ **Interactive Voice Mode (`VoiceScreen`):** Real-time voice animation, transcription, quick voice prompts, and Gemini 3.8 verbal readout!
+              - ⚙️ **All Settings 100% Functional (`SettingsScreen`):**
+                - Editable User Profile (Name & Email saved in SharedPreferences)
+                - Language selector (English, বাংলা, हिन्दी)
+                - Theme selector (Dark Neon, Cyberpunk Purple, AMOLED True Black)
+                - Voice & Personality models (Maya, Friday, Venom)
+                - Autonomous Voice Guardian biometrics & Wake Word toggles
+                - Live Gemini API Key verification with latency & token counter
+                - Backup & Restore JSON export
+              - 📊 **Reply Details & Token Analytics:** Exact token usage popup (Input tokens, Output tokens, Cached tokens, Latency) in Chat.
+              - 📅 **Dynamic Reminders:** Real upcoming reminder card on Home with instant reminder creation.
+              - 👑 **Max AI Pro Perks:** Unlocked full autonomous capabilities modal.
             
-            📥 **Download:** Tap `Max-AI-release.apk` below to install directly on your Android phone!
+            📥 **Download:** Tap `Max-AI-release.apk` below to download and update your app!
           files: Max-AI-release.apk
           draft: false
           prerelease: false
