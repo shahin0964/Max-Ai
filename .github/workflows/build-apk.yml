@@ -61,38 +61,31 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.6
-          name: Max AI Release v1.0.6 (Signed APK + Brand New Obsidian Cyber-Glow UI + 7-Model Waterfall + Ultra Token Efficiency)
+          tag_name: v1.0.7
+          name: Max AI Release v1.0.7 (Signed APK + 3D Pluto Celestial Orb with Bold MAX Core)
           body: |
-            ### 🚀 Max AI Android Release v1.0.6 - Official Signed APK
+            ### 🚀 Max AI Android Release v1.0.7 - Official Signed APK
             - **App Name:** Max AI
             - **Package:** `com.max.ai`
             - **Signing:** Official Release Keystore (`KEYSTORE_BASE64` signed APK)
             
-            ### 💎 Key Upgrades in v1.0.6:
-            - 🌌 **Brand New "Obsidian Cyber-Glow" UI Architecture:**
-              - Complete removal of legacy designs in favor of a bespoke, futuristic AI interface
-              - Deep OLED Obsidian backdrop (`#07090E`) with dynamic cyan and violet ambient radial glow
-              - **Quantum Voice Core Centerpiece:** Animated multi-ring interactive holographic sphere with ripple waves and live breathing states (Idle, Listening, Thinking, Speaking)
-              - **Floating Capability Horizon:** Instant access chips for `Chat Now`, `Vision AI`, `Yaadein Memory`, `Termux Console`, and `19 Tools`
-              - **Floating Command Deck:** Integrated bottom deck with Quick Action (+), dynamic text field, Pulsing Mic button, and Swift Send
-              - **Sleek 4-Tab Floating Dock:** `Core`, `Chat`, `Studio`, and `Settings`
-              - **Messenger Chat Experience:** Frosted glass message bubbles with avatar `M`, real-time typing indicator (`• • •`), one-tap clipboard copy, double checkmarks, and token metric badges
-            - ⚡ **7-Model Google Gemini Waterfall Cascade:**
-              - Starts with **`gemini-3.8-flash`** and automatically cascades across 7 models upon 429 quota, 503 spike, or 404/400 errors:
-                1. `gemini-3.8-flash` (Primary Turbo)
-                2. `gemini-2.0-flash` (1,500 requests/day free)
-                3. `gemini-2.0-flash-lite` (1,500 requests/day free · Ultra Fast)
-                4. `gemini-1.5-flash` (1,500 requests/day free · Stable)
-                5. `gemini-1.5-flash-8b` (1,500 requests/day free · Lowest Token Cost)
-                6. `gemini-2.0-pro-exp-02-05` (Deep Reasoning Fallback)
-                7. `gemini-1.5-pro` (Reasoning Fallback)
-                8. Groq API Fallback (`llama-3.3-70b-versatile` · 14,400 free requests/day)
-              - Multi-Key Rotation Pool: Separate multiple keys with commas in Settings to multiply quota
-            - 🧠 **Ultra-Low Token Consumption & Continuous Long-Term Memory (Yaadein):**
-              - **Smart Action Gating:** Automatically omits 19 heavy tool declarations on conversational messages, slashing input tokens by 85% (from 1,300+ down to ~150 tokens!)
-              - **Zero-Token Instant Memory:** Saying "remember [fact]" saves directly to local memory without spending API quota
-              - **Autonomous Proactive Context:** Past memories automatically inject into context so Max AI remembers your identity and preferences without wasteful tool round-trips
+            ### 💎 Key Upgrades in v1.0.7:
+            - 🪐 **Realistic 3D Pluto Celestial Quantum Orb:**
+              - Complete replacement of 2D circles with an authentic 3D rotating model of the dwarf planet Pluto (based on NASA New Horizons mission telemetry)
+              - **The Iconic Heart (Tombaugh Regio / Sputnik Planitia):** Distinct creamy-ivory nitrogen and carbon monoxide ice plain that rotates smoothly across the spherical curvature
+              - **Tholin Highlands & Cthulhu Macula:** Rich copper/ochre/mahogany organic tholin terrains and dark equatorial crater bands with true Lambertian diffuse lighting & nitrogen frost specular glint
+              - **Pluto Blue Rayleigh Atmospheric Haze:** Ethereal blue nitrogen haze ring encircling Pluto's limb with glowing Fresnel scattering
+              - **3D Tilted Orbital Dust Ring:** Depth-sorted stardust and moonlet orbit (half behind the planet, half glowing in front)
+            - ⚡ **Bold Holographic "MAX" Centerpiece:**
+              - "MAX" embossed in the dead-center of Pluto in ultra-bold, cyber-luxe metallic typography
+              - Anti-interference dark glass backplate ensuring crystal-clear legibility over rotating terrain
+              - Multi-pass 3D text rendering: drop shadow, neon electric cyan/purple atmospheric glow, and metallic gradient core
+              - Flanking audio-reactive brackets that expand and pulse dynamically during speech & listening
+            - 🛡️ **All Core Systems Active:**
+              - 7-Model Google Gemini Waterfall Cascade (Gemini 3.8 Flash ➔ 2.0 Flash ➔ 2.0 Flash Lite ➔ 1.5 Flash ➔ 8B ➔ Pro ➔ Groq)
+              - Multi-Key Rotation Pool to defeat 429 rate limits
+              - Smart Tool Gating for 85% token reduction
+              - Continuous Yaadein Long-Term Memory
             
             📥 **Download Signed APK:** Tap `Max-AI-signed-release.apk` below to download and install!
           files: Max-AI-signed-release.apk
